@@ -122,21 +122,24 @@ document.addEventListener('DOMContentLoaded', () => {
             alertsCard.classList.add('hidden');
         }
 
-        // Key factors
+        // Risk drivers — per-patient explanation of why the score is what it is
         const factorsList = document.getElementById('factors-list');
         factorsList.innerHTML = '';
-        if (result.key_factors) {
-            const maxImp = Math.max(...result.key_factors.map(f => f.importance));
-            result.key_factors.forEach(factor => {
-                const pct = (factor.importance / maxImp * 100).toFixed(0);
+        if (result.risk_drivers && result.risk_drivers.length) {
+            const maxImp = Math.max(...result.risk_drivers.map(f => f.impact));
+            result.risk_drivers.forEach(driver => {
+                const pct = (driver.impact / maxImp * 100).toFixed(0);
+                const up = driver.direction === 'increase';
+                const arrow = up ? '▲' : '▼';
                 const div = document.createElement('div');
-                div.className = 'factor-item';
+                div.className = `factor-item ${up ? 'driver-up' : 'driver-down'}`;
                 div.innerHTML = `
-                    <span class="factor-name">${factor.name}</span>
+                    <span class="factor-arrow">${arrow}</span>
+                    <span class="factor-name">${driver.name}</span>
                     <div class="factor-bar-container">
                         <div class="factor-bar" style="width: 0%"></div>
                     </div>
-                    <span class="factor-value">${formatValue(factor.value)}</span>
+                    <span class="factor-value">${formatValue(driver.value)}</span>
                 `;
                 factorsList.appendChild(div);
                 // Animate bar

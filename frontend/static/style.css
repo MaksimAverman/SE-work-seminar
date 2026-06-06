@@ -280,6 +280,15 @@ body {
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Risk drivers — direction coloring */
+.factor-arrow { font-size: 13px; width: 16px; text-align: center; flex-shrink: 0; }
+.driver-up   .factor-arrow { color: #e74c3c; }
+.driver-down .factor-arrow { color: #27ae60; }
+.driver-up   .factor-bar { background: linear-gradient(90deg, #e67e22, #e74c3c); }
+.driver-down .factor-bar { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+.legend-up   { color: #e74c3c; font-weight: 600; font-size: 12px; }
+.legend-down { color: #27ae60; font-weight: 600; font-size: 12px; }
+
 /* Computed indicators */
 .indicators-grid {
     display: grid; grid-template-columns: repeat(3, 1fr);

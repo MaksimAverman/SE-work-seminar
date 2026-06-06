@@ -145,8 +145,9 @@ Missing **required** fields return `400` with `{"error": "Missing required field
   "threshold": 0.4361,                 // decision threshold from model_meta.json
   "prediction": "At Risk of Deterioration",
   "is_at_risk": true,
-  "key_factors": [                     // top contributing features for this patient
-    {"name": "Age × Heart Rate", "feature": "age_x_hr", "value": 9200, "importance": 0.12}
+  "risk_drivers": [                    // per-patient explanation: why THIS score
+    {"name": "Max Lactate", "feature": "Lactate_max", "value": "7.2 mmol/L",
+     "direction": "increase", "impact": 0.92}   // direction: increase|decrease
   ],
   "clinical_alerts": [                 // human-readable warnings
     {"icon": "🔴", "text": "Elevated lactate (6.5 mmol/L) — ...", "level": "critical"}
@@ -191,11 +192,23 @@ Missing **required** fields return `400` with `{"error": "Missing required field
 5. **Inference** — `model.predict_proba(X_scaled)[0, 1]` gives the risk probability;
    it is compared against `THRESHOLD` (from `model_meta.json`) to set `is_at_risk`.
 
-6. **Enrichment** — the server attaches `key_factors`, `clinical_alerts`, and
+6. **Enrichment** — the server attaches `risk_drivers`, `clinical_alerts`, and
    `computed_indicators`, then returns JSON.
 
 7. **Rendering** — `app.js` `displayResults()` animates the gauge, fills the alert list,
-   the key-factor bars, and the computed-indicator grid.
+   the risk-driver bars, and the computed-indicator grid.
+
+### Per-patient explanation (`risk_drivers`)
+
+The "Why This Risk Score" panel is **specific to the patient just entered**, not a
+global feature-importance chart. `get_risk_drivers()` asks LightGBM for SHAP
+contributions via `model.booster_.predict(X_scaled, pred_contrib=True)`: each feature
+gets a signed value in log-odds space — **positive raises this patient's risk, negative
+lowers it**. The server returns the top drivers by magnitude with a human-readable label,
+the patient's own value, the `direction` (`increase`/`decrease`), and the `impact`
+magnitude. The frontend shows ▲ (red) for risk-raising and ▼ (green) for risk-lowering
+factors. This uses LightGBM's built-in attribution — no extra `shap` dependency at serve
+time.
 
 ---
 
@@ -246,10 +259,11 @@ imputation medians all update automatically because they are read from
 `export_model.py` — as long as it exposes `predict_proba` and you keep the same feature
 list, nothing else needs to change.
 
-> The current model is a `LGBMClassifier` (LightGBM). `app.py` reads
-> `model.feature_importances_` for the "key factors" panel — any tree model exposes
-> this. If you switch to a model without `feature_importances_` (e.g. plain logistic
-> regression), update `get_key_factors()` accordingly.
+> The current model is a `LGBMClassifier` (LightGBM). `app.py` calls
+> `model.booster_.predict(..., pred_contrib=True)` for the per-patient "Why This Risk
+> Score" panel — this is LightGBM-specific. If you switch to a non-LightGBM model,
+> update `get_risk_drivers()` to use that model's attribution (e.g. the `shap` library's
+> `TreeExplainer`, or coefficients for a linear model).
 
 ---
 

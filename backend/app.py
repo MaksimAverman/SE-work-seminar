@@ -152,42 +152,76 @@ def generate_alerts(data, computed):
     return alerts
 
 
-def get_key_factors(feature_dict, feature_importances):
-    """Identify top contributing factors for this prediction."""
-    factors = []
-    imp = dict(zip(FEATURES, feature_importances))
+# Human-readable label for every model feature.
+FEATURE_LABELS = {
+    'DiasBP_mean': 'Mean Diastolic BP', 'HeartRate_mean': 'Mean Heart Rate', 'SysBP_mean': 'Mean Systolic BP',
+    'DiasBP_min': 'Min Diastolic BP', 'HeartRate_min': 'Min Heart Rate', 'SysBP_min': 'Min Systolic BP',
+    'DiasBP_max': 'Max Diastolic BP', 'HeartRate_max': 'Max Heart Rate', 'SysBP_max': 'Max Systolic BP',
+    'AGE': 'Age', 'GENDER_M': 'Male sex',
+    'BP_range': 'Diastolic BP variability', 'HR_range': 'Heart rate variability', 'SBP_range': 'Systolic BP variability',
+    'shock_index': 'Shock Index (HR/SBP)', 'pulse_pressure': 'Pulse Pressure', 'MAP': 'Mean Arterial Pressure',
+    'age_x_hr': 'Age × Heart Rate', 'age_x_sbp': 'Age × Systolic BP',
+    'DiasBP_mean_missing': 'Diastolic BP not recorded', 'HeartRate_mean_missing': 'Heart rate not recorded',
+    'SysBP_mean_missing': 'Systolic BP not recorded',
+    'shock_index_high': 'Elevated shock index (>0.9)', 'age_over_75': 'Age over 75', 'map_low': 'Low MAP (<65)',
+    'tachycardia': 'Tachycardia (HR>100)', 'hypotension': 'Hypotension (SBP<90)',
+    'admit_hour': 'Admission hour', 'admit_dayofweek': 'Admission weekday',
+    'is_night': 'Night admission', 'is_weekend': 'Weekend admission',
+    'Creatinine_max': 'Max Creatinine', 'Lactate_max': 'Max Lactate',
+    'Creatinine_max_missing': 'Creatinine not recorded', 'Lactate_max_missing': 'Lactate not recorded',
+}
 
-    indicator_labels = {
-        'age_x_hr': 'Age × Heart Rate',
-        'AGE': 'Age',
-        'age_x_sbp': 'Age × Systolic BP',
-        'shock_index': 'Shock Index (HR/SBP)',
-        'SysBP_min': 'Min Systolic BP',
-        'HeartRate_mean': 'Mean Heart Rate',
-        'HR_range': 'Heart Rate Variability',
-        'MAP': 'Mean Arterial Pressure',
-        'SBP_range': 'Systolic BP Variability',
-        'DiasBP_min': 'Min Diastolic BP',
-        'pulse_pressure': 'Pulse Pressure',
-        'HeartRate_max': 'Max Heart Rate',
-        'SysBP_mean': 'Mean Systolic BP',
-        'BP_range': 'Diastolic BP Variability',
-        'HeartRate_min': 'Min Heart Rate',
-        'Lactate_max': 'Max Lactate',
-        'Creatinine_max': 'Max Creatinine',
-    }
+FEATURE_UNITS = {
+    'HeartRate_mean': 'bpm', 'HeartRate_min': 'bpm', 'HeartRate_max': 'bpm', 'HR_range': 'bpm',
+    'SysBP_mean': 'mmHg', 'SysBP_min': 'mmHg', 'SysBP_max': 'mmHg', 'SBP_range': 'mmHg',
+    'DiasBP_mean': 'mmHg', 'DiasBP_min': 'mmHg', 'DiasBP_max': 'mmHg', 'BP_range': 'mmHg',
+    'MAP': 'mmHg', 'pulse_pressure': 'mmHg',
+    'AGE': 'yrs', 'Lactate_max': 'mmol/L', 'Creatinine_max': 'mg/dL',
+}
 
-    sorted_feats = sorted(imp.items(), key=lambda x: x[1], reverse=True)
-    for feat, importance in sorted_feats[:7]:
-        if feat in indicator_labels:
-            val = feature_dict[feat]
-            factors.append({
-                'name': indicator_labels[feat],
-                'feature': feat,
-                'value': round(val, 2) if isinstance(val, float) else val,
-                'importance': round(importance, 4),
-            })
-    return factors
+# Binary 0/1 features — shown as Yes/No rather than a number.
+FLAG_FEATURES = {
+    'GENDER_M', 'shock_index_high', 'age_over_75', 'map_low', 'tachycardia', 'hypotension',
+    'is_night', 'is_weekend', 'DiasBP_mean_missing', 'HeartRate_mean_missing', 'SysBP_mean_missing',
+    'Creatinine_max_missing', 'Lactate_max_missing',
+}
+
+_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+
+def format_feature_value(feat, val):
+    """Render a feature value the way a clinician would read it."""
+    if feat in FLAG_FEATURES:
+        return 'Yes' if val else 'No'
+    if feat == 'admit_hour':
+        return f"{int(val):02d}:00"
+    if feat == 'admit_dayofweek':
+        return _WEEKDAYS[int(val) % 7]
+    num = round(val, 2) if isinstance(val, float) else val
+    unit = FEATURE_UNITS.get(feat)
+    return f"{num} {unit}" if unit else num
+
+
+def get_risk_drivers(feature_dict, X_scaled, top_n=6):
+    """Per-patient explanation: which of THIS patient's values pushed the risk
+    up or down, using LightGBM's built-in SHAP contributions (log-odds space).
+    Positive contribution => increases risk; negative => lowers it."""
+    # pred_contrib returns one column per feature plus a trailing base value.
+    contribs = model.booster_.predict(X_scaled, pred_contrib=True)[0]
+    drivers = []
+    for feat, contrib in zip(FEATURES, contribs[:-1]):
+        contrib = float(contrib)
+        if abs(contrib) < 1e-6:
+            continue
+        drivers.append({
+            'name': FEATURE_LABELS.get(feat, feat),
+            'feature': feat,
+            'value': format_feature_value(feat, feature_dict[feat]),
+            'direction': 'increase' if contrib > 0 else 'decrease',
+            'impact': round(abs(contrib), 4),
+        })
+    drivers.sort(key=lambda d: d['impact'], reverse=True)
+    return drivers[:top_n]
 
 
 @app.route('/')
@@ -239,9 +273,8 @@ def predict():
         else:
             risk_level, risk_color = 'LOW', '#27ae60'
 
-        # Key factors
-        fi = model.feature_importances_
-        key_factors = get_key_factors(feature_dict, fi)
+        # Per-patient risk drivers (why this score?)
+        risk_drivers = get_risk_drivers(feature_dict, X_scaled)
 
         # Clinical alerts
         alerts = generate_alerts(data, computed)
@@ -254,7 +287,7 @@ def predict():
             'threshold': THRESHOLD,
             'prediction': 'At Risk of Deterioration' if prediction else 'Low Risk',
             'is_at_risk': prediction,
-            'key_factors': key_factors,
+            'risk_drivers': risk_drivers,
             'clinical_alerts': alerts,
             'computed_indicators': computed,
         }))
