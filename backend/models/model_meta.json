@@ -1,0 +1,120 @@
+{
+  "features": [
+    "DiasBP_mean",
+    "HeartRate_mean",
+    "SysBP_mean",
+    "DiasBP_min",
+    "HeartRate_min",
+    "SysBP_min",
+    "DiasBP_max",
+    "HeartRate_max",
+    "SysBP_max",
+    "AGE",
+    "GENDER_M",
+    "BP_range",
+    "HR_range",
+    "SBP_range",
+    "shock_index",
+    "pulse_pressure",
+    "MAP",
+    "age_x_hr",
+    "age_x_sbp",
+    "DiasBP_mean_missing",
+    "HeartRate_mean_missing",
+    "SysBP_mean_missing",
+    "shock_index_high",
+    "age_over_75",
+    "map_low",
+    "tachycardia",
+    "hypotension",
+    "admit_hour",
+    "admit_dayofweek",
+    "is_night",
+    "is_weekend",
+    "Creatinine_max",
+    "Lactate_max",
+    "Creatinine_max_missing",
+    "Lactate_max_missing"
+  ],
+  "threshold": 0.4361017428869765,
+  "auc": 0.7856,
+  "sensitivity": 0.7337,
+  "macro_f1": 0.584,
+  "model_type": "LGBMClassifier",
+  "n_train": 41702,
+  "n_test": 10426,
+  "input_ranges": {
+    "AGE": {
+      "min": 15.0,
+      "max": 90.0,
+      "median": 66.0,
+      "mean": 64.0
+    },
+    "HeartRate_mean": {
+      "min": 30.07692307692308,
+      "max": 163.43333333333334,
+      "median": 84.57793522267207,
+      "mean": 85.8
+    },
+    "HeartRate_min": {
+      "min": 20.0,
+      "max": 150.0,
+      "median": 73.0,
+      "mean": 74.5
+    },
+    "HeartRate_max": {
+      "min": 33.0,
+      "max": 240.0,
+      "median": 97.0,
+      "mean": 99.6
+    },
+    "SysBP_mean": {
+      "min": 34.69767441860465,
+      "max": 222.9,
+      "median": 116.0,
+      "mean": 118.6
+    },
+    "SysBP_min": {
+      "min": 30.0,
+      "max": 212.0,
+      "median": 95.0,
+      "mean": 96.8
+    },
+    "SysBP_max": {
+      "min": 46.0,
+      "max": 290.0,
+      "median": 141.0,
+      "mean": 144.2
+    },
+    "DiasBP_mean": {
+      "min": 12.0,
+      "max": 139.05,
+      "median": 59.8421052631579,
+      "mean": 60.9
+    },
+    "DiasBP_min": {
+      "min": 10.0,
+      "max": 134.0,
+      "median": 46.0,
+      "mean": 46.9
+    },
+    "DiasBP_max": {
+      "min": 12.0,
+      "max": 199.0,
+      "median": 77.0,
+      "mean": 79.2
+    },
+    "Creatinine_max": {
+      "min": 0.1,
+      "max": 46.6,
+      "median": 1.0,
+      "mean": 1.4
+    },
+    "Lactate_max": {
+      "min": 0.3,
+      "max": 32.0,
+      "median": 2.0,
+      "mean": 2.3
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# ICU Early Warning System — backend dependencies
+# Runtime (Flask API + inference)
+flask==3.1.3
+numpy==2.1.1
+pandas==2.2.3
+scikit-learn==1.7.1
+joblib==1.5.1
+lightgbm==4.6.0
+
+# Training / analysis only (export_model.py + notebooks)
+# Uncomment if you retrain or run the notebooks:
+# xgboost==2.1.1
+# imbalanced-learn==0.12.4
+# shap==0.46.0
+# matplotlib==3.9.2
+# seaborn==0.13.2

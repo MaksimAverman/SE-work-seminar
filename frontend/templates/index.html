@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICU Early Warning System</title>
+    <meta name="description" content="Predict ICU patient deterioration risk from early clinical indicators">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🏥</span>
+                    <div>
+                        <h1>ICU Early Warning System</h1>
+                        <p class="subtitle">Deterioration risk prediction from early clinical indicators</p>
+                    </div>
+                </div>
+                <div class="model-badge">
+                    <span class="badge-dot"></span>
+                    Model AUC: {{ meta.auc }}
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section" id="input-section">
+                <div class="info-banner">
+                    <span class="info-banner-icon">ℹ️</span>
+                    <div>
+                        <strong>How to use:</strong> Enter the patient's demographic data and vital signs recorded during the <strong>first 12 hours</strong> of ICU admission. The model will compute derived indicators (Shock Index, MAP, etc.) automatically and estimate the deterioration risk.
+                    </div>
+                </div>
+                <form id="patient-form">
+                    <div class="form-grid">
+                        <!-- Patient Info Card -->
+                        <div class="card card-patient">
+                            <div class="card-header">
+                                <span class="card-icon">👤</span>
+                                <h2>Patient Information</h2>
+                            </div>
+                            <div class="card-desc">Basic demographic data from the patient's medical record.</div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="age">Age (years)</label>
+                                    <input type="number" id="age" name="age" min="3" max="120" step="1" placeholder="e.g. 72" required>
+                                    <span class="hint">Patient's age at ICU admission. Model trained on ages 3–90.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Biological sex</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="gender" value="M" checked>
+                                            <span class="radio-custom"></span> Male
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="gender" value="F">
+                                            <span class="radio-custom"></span> Female
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admit_hour">Admission hour</label>
+                                    <input type="number" id="admit_hour" name="admit_hour" min="0" max="23" step="1" value="12">
+                                    <span class="hint">Hour the patient was admitted to the ICU (24h format, 0–23). Night admissions (22:00–06:00) may carry higher risk.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admit_dayofweek">Day of admission</label>
+                                    <select id="admit_dayofweek" name="admit_dayofweek">
+                                        <option value="0">Monday</option>
+                                        <option value="1">Tuesday</option>
+                                        <option value="2" selected>Wednesday</option>
+                                        <option value="3">Thursday</option>
+                                        <option value="4">Friday</option>
+                                        <option value="5">Saturday</option>
+                                        <option value="6">Sunday</option>
+                                    </select>
+                                    <span class="hint">Weekday of ICU admission. Weekend staffing may affect outcomes.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Heart Rate Card -->
+                        <div class="card card-hr">
+                            <div class="card-header">
+                                <span class="card-icon">❤️</span>
+                                <h2>Heart Rate <span class="unit">(bpm)</span></h2>
+                            </div>
+                            <div class="card-desc">Heart rate readings from the cardiac monitor during the first 12 hours. Enter the <strong>average</strong>, <strong>lowest</strong>, and <strong>highest</strong> values recorded.</div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="heart_rate_mean">Average Heart Rate</label>
+                                    <input type="number" id="heart_rate_mean" name="heart_rate_mean" min="20" max="250" step="0.1" placeholder="e.g. 88" required>
+                                    <span class="hint">Average HR over the monitoring period. Normal resting: 60–100 bpm. Above 100 = tachycardia.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="heart_rate_min">Lowest Heart Rate</label>
+                                    <input type="number" id="heart_rate_min" name="heart_rate_min" min="10" max="250" step="0.1" placeholder="e.g. 65" required>
+                                    <span class="hint">The lowest HR recorded. Below 50 = bradycardia warning.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="heart_rate_max">Highest Heart Rate</label>
+                                    <input type="number" id="heart_rate_max" name="heart_rate_max" min="20" max="300" step="0.1" placeholder="e.g. 115" required>
+                                    <span class="hint">The highest HR recorded. Large difference between min and max = hemodynamic instability.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Blood Pressure Card -->
+                        <div class="card card-bp">
+                            <div class="card-header">
+                                <span class="card-icon">🩸</span>
+                                <h2>Blood Pressure <span class="unit">(mmHg)</span></h2>
+                            </div>
+                            <div class="card-desc">Blood pressure readings from the first 12 hours. <strong>Systolic</strong> = upper number (pressure during heartbeat). <strong>Diastolic</strong> = lower number (pressure between beats). Enter average, lowest, and highest values from the monitor.</div>
+                            <div class="card-body">
+                                <div class="bp-grid">
+                                    <div class="bp-column">
+                                        <h3>Systolic (upper)</h3>
+                                        <div class="form-group">
+                                            <label for="systolic_bp_mean">Average SBP</label>
+                                            <input type="number" id="systolic_bp_mean" name="systolic_bp_mean" min="40" max="300" step="0.1" placeholder="120" required>
+                                            <span class="hint">Normal: 90–140 mmHg</span>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="systolic_bp_min">Lowest SBP</label>
+                                            <input type="number" id="systolic_bp_min" name="systolic_bp_min" min="30" max="300" step="0.1" placeholder="95" required>
+                                            <span class="hint">Below 90 = severe hypotension ⚠️</span>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="systolic_bp_max">Highest SBP</label>
+                                            <input type="number" id="systolic_bp_max" name="systolic_bp_max" min="40" max="350" step="0.1" placeholder="145" required>
+                                            <span class="hint">Above 180 = hypertensive crisis</span>
+                                        </div>
+                                    </div>
+                                    <div class="bp-divider"></div>
+                                    <div class="bp-column">
+                                        <h3>Diastolic (lower)</h3>
+                                        <div class="form-group">
+                                            <label for="diastolic_bp_mean">Average DBP</label>
+                                            <input type="number" id="diastolic_bp_mean" name="diastolic_bp_mean" min="20" max="200" step="0.1" placeholder="70" required>
+                                            <span class="hint">Normal: 60–90 mmHg</span>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="diastolic_bp_min">Lowest DBP</label>
+                                            <input type="number" id="diastolic_bp_min" name="diastolic_bp_min" min="10" max="200" step="0.1" placeholder="55" required>
+                                            <span class="hint">Below 50 = impaired perfusion</span>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="diastolic_bp_max">Highest DBP</label>
+                                            <input type="number" id="diastolic_bp_max" name="diastolic_bp_max" min="20" max="250" step="0.1" placeholder="85" required>
+                                            <span class="hint">Above 120 = critical</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Lab Results Card -->
+                        <div class="card card-labs">
+                            <div class="card-header">
+                                <span class="card-icon">🧪</span>
+                                <h2>Lab Results <span class="unit">(optional)</span></h2>
+                            </div>
+                            <div class="card-desc">Worst (maximum) lab values from the first 12 hours. <strong>Optional</strong> — leave blank if unavailable and the cohort median will be used. These markers strongly improve risk estimation.</div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label for="lactate_max">Max Lactate <span class="unit">(mmol/L)</span></label>
+                                    <input type="number" id="lactate_max" name="lactate_max" min="0.1" max="40" step="0.1" placeholder="e.g. 2.0">
+                                    <span class="hint">Highest lactate recorded. Normal: &lt; 2.0. Above 4.0 = tissue hypoperfusion / possible sepsis 🔴</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="creatinine_max">Max Creatinine <span class="unit">(mg/dL)</span></label>
+                                    <input type="number" id="creatinine_max" name="creatinine_max" min="0.1" max="50" step="0.1" placeholder="e.g. 1.0">
+                                    <span class="hint">Highest creatinine recorded. Normal: 0.6–1.3. Above 2.0 = renal dysfunction ⚠️</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="submit-container">
+                        <button type="submit" class="btn-predict" id="btn-predict">
+                            <span class="btn-icon">🔍</span>
+                            <span class="btn-text">Assess Deterioration Risk</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section hidden" id="results-section">
+                <!-- Risk Gauge -->
+                <div class="card card-risk" id="risk-card">
+                    <div class="risk-header">
+                        <h2>Risk Assessment</h2>
+                        <span class="risk-badge" id="risk-badge">—</span>
+                    </div>
+                    <div class="risk-gauge-container">
+                        <div class="risk-gauge">
+                            <svg viewBox="0 0 200 120" class="gauge-svg">
+                                <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100"/>
+                                <path class="gauge-fill" id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" stroke-dasharray="0 251.2"/>
+                            </svg>
+                            <div class="gauge-value" id="gauge-value">—</div>
+                            <div class="gauge-label" id="gauge-label">Risk Score</div>
+                        </div>
+                    </div>
+                    <div class="risk-prediction" id="risk-prediction">—</div>
+                </div>
+
+                <!-- Alerts -->
+                <div class="card card-alerts hidden" id="alerts-card">
+                    <div class="card-header">
+                        <span class="card-icon">🚨</span>
+                        <h2>Clinical Alerts</h2>
+                    </div>
+                    <div class="card-body" id="alerts-list"></div>
+                </div>
+
+                <!-- Key Factors -->
+                <div class="card card-factors">
+                    <div class="card-header">
+                        <span class="card-icon">📊</span>
+                        <h2>Key Contributing Factors</h2>
+                    </div>
+                    <div class="card-body" id="factors-list"></div>
+                </div>
+
+                <!-- Computed Indicators -->
+                <div class="card card-computed">
+                    <div class="card-header">
+                        <span class="card-icon">🧮</span>
+                        <h2>Computed Clinical Indicators</h2>
+                    </div>
+                    <div class="indicators-grid" id="indicators-grid"></div>
+                </div>
+
+                <button class="btn-reset" id="btn-reset">← New Assessment</button>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>⚠️ This tool is for research purposes only. Not validated for clinical use. Always consult medical professionals.</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
