@@ -1,9 +1,13 @@
 import customtkinter as ctk
 from tkinter import messagebox
-import requests
 import copy
+import sys
+import os
 
-API_URL = "http://localhost:5000/predict"
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+from app import compute_features, generate_alerts, get_risk_drivers, model, scaler, FEATURES, THRESHOLD
+import pandas as pd
+import numpy as np
 
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
@@ -50,27 +54,54 @@ patients = [
 
 
 def call_model(patient):
-    payload = {
-        "age": patient["age"],
+    data = {
+        "age": float(patient["age"]),
         "gender": patient.get("gender", "M"),
-        "heart_rate_mean": patient["heart_rate_mean"],
-        "heart_rate_min": patient["heart_rate_min"],
-        "heart_rate_max": patient["heart_rate_max"],
-        "systolic_bp_mean": patient["systolic_bp_mean"],
-        "systolic_bp_min": patient["systolic_bp_min"],
-        "systolic_bp_max": patient["systolic_bp_max"],
-        "diastolic_bp_mean": patient["diastolic_bp_mean"],
-        "diastolic_bp_min": patient["diastolic_bp_min"],
-        "diastolic_bp_max": patient["diastolic_bp_max"],
-        "admit_hour": patient.get("admit_hour", 12),
-        "admit_dayofweek": patient.get("admit_dayofweek", 2),
+        "heart_rate_mean": float(patient["heart_rate_mean"]),
+        "heart_rate_min": float(patient["heart_rate_min"]),
+        "heart_rate_max": float(patient["heart_rate_max"]),
+        "systolic_bp_mean": float(patient["systolic_bp_mean"]),
+        "systolic_bp_min": float(patient["systolic_bp_min"]),
+        "systolic_bp_max": float(patient["systolic_bp_max"]),
+        "diastolic_bp_mean": float(patient["diastolic_bp_mean"]),
+        "diastolic_bp_min": float(patient["diastolic_bp_min"]),
+        "diastolic_bp_max": float(patient["diastolic_bp_max"]),
+        "admit_hour": int(patient.get("admit_hour", 12)),
+        "admit_dayofweek": int(patient.get("admit_dayofweek", 2)),
         "lactate_max": patient.get("lactate_max"),
-        "creatinine_max": patient.get("creatinine_max")
+        "creatinine_max": patient.get("creatinine_max"),
     }
 
-    response = requests.post(API_URL, json=payload, timeout=5)
-    response.raise_for_status()
-    result = response.json()
+    feature_dict, computed = compute_features(data)
+    X = pd.DataFrame([feature_dict])[FEATURES]
+    X_scaled = pd.DataFrame(scaler.transform(X), columns=FEATURES)
+    risk_score = float(model.predict_proba(X_scaled)[0, 1])
+    prediction = risk_score >= THRESHOLD
+
+    if risk_score >= 0.6:
+        risk_level, risk_color = "CRITICAL", "#c0392b"
+    elif risk_score >= THRESHOLD:
+        risk_level, risk_color = "HIGH", "#e67e22"
+    elif risk_score >= 0.25:
+        risk_level, risk_color = "MODERATE", "#f1c40f"
+    else:
+        risk_level, risk_color = "LOW", "#27ae60"
+
+    risk_drivers = get_risk_drivers(feature_dict, X_scaled)
+    alerts = generate_alerts(data, computed)
+
+    result = {
+        "risk_score": round(risk_score, 4),
+        "risk_percent": f"{risk_score * 100:.1f}%",
+        "risk_level": risk_level,
+        "risk_color": risk_color,
+        "threshold": THRESHOLD,
+        "prediction": "At Risk of Deterioration" if prediction else "Low Risk",
+        "is_at_risk": prediction,
+        "risk_drivers": risk_drivers,
+        "clinical_alerts": alerts,
+        "computed_indicators": computed,
+    }
 
     patient["model_result"] = result
     return result
