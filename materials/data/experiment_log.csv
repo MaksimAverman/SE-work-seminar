@@ -1,0 +1,9 @@
+experiment_id,hypothesis_id,date,dataset_version,features_count,features_added,model,accuracy,precision,recall,f1,macro_f1,auc,train_time,predict_time,improvement_over_baseline,result_status
+E001,BASELINE,2026-05-22,v1_cleaned,13,Baseline: raw features only,LogisticRegression,0.8984,0.6731,0.1059,0.183,0.5644,0.766,0.049,0.003,0.0,baseline
+E002,H001,2026-05-22,v1_cleaned,16,"+vital ranges (BP_range, HR_range, SBP_range)",LogisticRegression,0.8984,0.6731,0.1059,0.183,0.5644,0.766,0.061,0.003,0.0,no_change
+E003,H002,2026-05-22,v1_cleaned,19,"+shock_index, pulse_pressure, MAP",LogisticRegression,0.8991,0.6739,0.1172,0.1997,0.5729,0.7713,0.078,0.003,1.51,improved
+E004,H003,2026-05-22,v1_cleaned,24,+missingness indicator flags,LogisticRegression,0.8989,0.6625,0.1203,0.2036,0.5748,0.7755,0.108,0.002,1.84,improved
+E005,H004,2026-05-22,v1_cleaned,28,+age interaction features,LogisticRegression,0.899,0.6667,0.1195,0.2027,0.5744,0.7777,0.196,0.003,1.77,improved
+E006,H005,2026-05-22,v1_cleaned,32,"+admission time features (all hypotheses, LR)",LogisticRegression,0.8989,0.6585,0.1225,0.2066,0.5763,0.7819,0.173,0.003,2.11,improved
+E007,ALL,2026-05-22,v1_cleaned,32,"All features, Random Forest",RandomForest,0.9025,0.7226,0.1498,0.2481,0.598,0.807,2.505,0.103,5.95,improved
+E008,ALL,2026-05-22,v1_cleaned,32,"All features, Gradient Boosting",GradientBoosting,0.8993,0.6107,0.1732,0.2699,0.6079,0.805,58.103,0.067,7.71,improved

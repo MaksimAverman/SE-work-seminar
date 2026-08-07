@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project README — ICU Early Warning System</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<style>
+  main.doc { max-width: 860px; }
+  main.doc pre { background:#f0f3f7; border:1px solid var(--border); border-radius:8px; padding:14px; overflow-x:auto; }
+  main.doc code { background:#eef1f5; padding:1px 5px; border-radius:4px; font-size:0.92em; }
+  main.doc pre code { background:none; padding:0; }
+  main.doc table { margin: 14px 0; }
+  main.doc blockquote { border-left: 3px solid var(--blue); margin: 0; padding: 4px 16px; color: var(--ink-soft); background: var(--blue-pale); border-radius: 0 8px 8px 0; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="../../index.htm">Home</a>
+      <a href="../../overview.html">Overview</a>
+      <a href="../../data.html">Data &amp; EDA</a>
+      <a href="../../methodology.html">Methodology</a>
+      <a href="../../results.html">Results</a>
+      <a href="../../application.html">Application</a>
+      <a href="../../downloads.html" class="active">Downloads</a>
+      <a href="../../team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <div class="breadcrumb"><a href="../../downloads.html">Downloads</a> / Project README</div>
+    <h1>Project README</h1>
+  </div>
+</div>
+
+<main class="container doc">
+<h1 id="icu-early-warning-system">ICU Early Warning System</h1>
+<p>Predicts ICU patient <strong>deterioration / mortality risk</strong> from early clinical indicators
+(heart rate, blood pressure, age, and optional labs). A LightGBM model is served through
+a Flask web app with a clinical-style UI.</p>
+<h2 id="layout">Layout</h2>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>backend/</code></td>
+<td>Flask API (<code>app.py</code>), training script (<code>export_model.py</code>), saved model artifacts (<code>models/</code>), <code>requirements.txt</code></td>
+</tr>
+<tr>
+<td><code>frontend/</code></td>
+<td>UI — <code>templates/index.html</code>, <code>static/app.js</code>, <code>static/style.css</code></td>
+</tr>
+<tr>
+<td><code>data/</code></td>
+<td>Raw dataset (<code>COMPLETE_ICU_RISK_DATASET.csv</code>)</td>
+</tr>
+<tr>
+<td><code>notebooks/</code></td>
+<td>EDA &amp; experiments</td>
+</tr>
+<tr>
+<td><code>images/</code></td>
+<td>Generated figures</td>
+</tr>
+<tr>
+<td><code>experiments/</code></td>
+<td>Experiment logs (CSV)</td>
+</tr>
+<tr>
+<td><code>docs/</code></td>
+<td>Documentation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="quick-start">Quick start</h2>
+<pre><code class="language-bash">pip install -r backend/requirements.txt
+cd backend
+python app.py        # -&gt; http://localhost:5000
+</code></pre>
+<h2 id="retrain-the-model">Retrain the model</h2>
+<pre><code class="language-bash">cd backend
+python export_model.py   # rewrites backend/models/{model,scaler,model_meta}.joblib/json
+</code></pre>
+<h2 id="current-model">Current model</h2>
+<p>LightGBM (cleaned data + labs): <strong>AUC 0.786</strong>, sensitivity 0.73, macro-F1 0.58.</p>
+<h2 id="how-the-model-connects-to-the-ui">How the model connects to the UI</h2>
+<p>See <strong><a href="docs/MODEL_INTEGRATION.md">docs/MODEL_INTEGRATION.md</a></strong> — full data-flow, the
+<code>/predict</code> request/response contract, and step-by-step recipes for adding inputs,
+retraining, and swapping the model.</p>
+<blockquote>
+<p>⚠️ Research use only. Not validated for clinical use.</p>
+</blockquote>
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="../../team.html">Team</a> · <a href="../../downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

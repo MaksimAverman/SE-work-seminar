@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Methodology — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html" class="active">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html">Application</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>Methodology</h1>
+    <p>Hypothesis-driven feature engineering, model comparison, and the full experiment log.</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <section>
+    <h2>Approach</h2>
+    <p>
+      Every candidate feature and every model was tested as a standalone,
+      logged experiment against a tracked baseline — nothing was accepted
+      into the final pipeline without a measured improvement. The workflow
+      was: (1) establish a baseline model on raw features, (2) propose a
+      hypothesis for a new feature or feature group, (3) test it in
+      isolation, (4) record accuracy / precision / recall / F1 / macro-F1 /
+      AUC against the baseline, and (5) keep only what improved the model.
+    </p>
+  </section>
+
+  <section>
+    <h2>Stage 1 — Feature engineering experiments</h2>
+    <p>
+      Starting from 13 raw features, each hypothesis added a small,
+      well-motivated feature group and was re-evaluated with Logistic
+      Regression before moving on, isolating the effect of each addition.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <caption>experiments/experiment_log.csv — feature-engineering trials (v1_cleaned dataset)</caption>
+        <tr>
+          <th>ID</th><th>Hypothesis</th><th>Model</th><th>Features</th>
+          <th>Macro-F1</th><th>AUC</th><th>vs. baseline</th><th>Status</th>
+        </tr>
+        <tr><td>E001</td><td>Baseline: raw features only</td><td>LogisticRegression</td><td>13</td><td>0.5644</td><td>0.766</td><td>—</td><td><span class="pill no_change">baseline</span></td></tr>
+        <tr><td>E002</td><td>+ vital ranges (BP_range, HR_range, SBP_range)</td><td>LogisticRegression</td><td>16</td><td>0.5644</td><td>0.766</td><td>0.0%</td><td><span class="pill no_change">no change</span></td></tr>
+        <tr><td>E003</td><td>+ shock_index, pulse_pressure, MAP</td><td>LogisticRegression</td><td>19</td><td>0.5729</td><td>0.7713</td><td>+1.51%</td><td><span class="pill improved">improved</span></td></tr>
+        <tr><td>E004</td><td>+ missingness indicator flags</td><td>LogisticRegression</td><td>24</td><td>0.5748</td><td>0.7755</td><td>+1.84%</td><td><span class="pill improved">improved</span></td></tr>
+        <tr><td>E005</td><td>+ age interaction features</td><td>LogisticRegression</td><td>28</td><td>0.5744</td><td>0.7777</td><td>+1.77%</td><td><span class="pill improved">improved</span></td></tr>
+        <tr><td>E006</td><td>+ admission time features (all hypotheses)</td><td>LogisticRegression</td><td>32</td><td>0.5763</td><td>0.7819</td><td>+2.11%</td><td><span class="pill improved">improved</span></td></tr>
+        <tr><td>E007</td><td>All features, Random Forest</td><td>RandomForest</td><td>32</td><td>0.598</td><td>0.807</td><td>+5.95%</td><td><span class="pill improved">improved</span></td></tr>
+        <tr><td>E008</td><td>All features, Gradient Boosting</td><td>GradientBoosting</td><td>32</td><td>0.6079</td><td>0.805</td><td>+7.71%</td><td><span class="pill improved">improved</span></td></tr>
+      </table>
+    </div>
+    <p>
+      Result: only <code>vital ranges</code> alone (E002) failed to move the
+      needle — every other feature group improved macro-F1 and/or AUC over
+      the previous step, and switching from a linear model to gradient
+      boosting (E007–E008) gave the largest single jump.
+    </p>
+  </section>
+
+  <section>
+    <h2>Stage 2 — Model &amp; imbalance-handling comparison</h2>
+    <p>
+      With the feature set settled, the second round of experiments
+      compared model families and class-imbalance strategies (class
+      weighting vs. SMOTE oversampling) and tuned the decision threshold,
+      since accuracy alone is misleading on an imbalanced clinical outcome.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <caption>experiments/experiment_log_final.csv — model &amp; threshold comparison</caption>
+        <tr>
+          <th>ID</th><th>Model</th><th>Threshold</th><th>Sensitivity</th><th>Specificity</th>
+          <th>PPV</th><th>Macro-F1</th><th>AUC</th><th>Detected</th>
+        </tr>
+        <tr><td>E01</td><td>LR baseline</td><td>0.50</td><td>0.081</td><td>0.995</td><td>0.696</td><td>0.541</td><td>0.735</td><td>103/1274</td></tr>
+        <tr><td>E02</td><td>LR, class-balanced</td><td>0.50</td><td>0.646</td><td>0.698</td><td>0.229</td><td>0.569</td><td>0.737</td><td>823/1274</td></tr>
+        <tr><td>E03</td><td>RF, class-balanced</td><td>0.50</td><td>0.167</td><td>0.977</td><td>0.502</td><td>0.592</td><td>0.729</td><td>213/1274</td></tr>
+        <tr><td>E04</td><td>XGBoost, class-balanced</td><td>0.50</td><td>0.579</td><td>0.767</td><td>0.257</td><td>0.598</td><td>0.749</td><td>737/1274</td></tr>
+        <tr><td>E05</td><td>LightGBM, class-balanced</td><td>0.50</td><td>0.602</td><td>0.751</td><td>0.252</td><td>0.593</td><td>0.754</td><td>767/1274</td></tr>
+        <tr><td>E06</td><td>XGBoost, SMOTE</td><td>0.50</td><td>0.182</td><td>0.976</td><td>0.514</td><td>0.602</td><td>0.737</td><td>232/1274</td></tr>
+        <tr><td>E07</td><td>RF, SMOTE</td><td>0.50</td><td>0.418</td><td>0.848</td><td>0.276</td><td>0.606</td><td>0.732</td><td>532/1274</td></tr>
+        <tr><td>E08</td><td><strong>LightGBM, tuned threshold</strong></td><td><strong>0.44</strong></td><td><strong>0.711</strong></td><td>0.658</td><td>0.225</td><td>0.558</td><td>0.754</td><td>906/1274</td></tr>
+      </table>
+    </div>
+    <div class="fig-grid">
+      <figure class="figure">
+        <img src="assets/img/fig_06_threshold_optimization.png" alt="Decision threshold optimization">
+        <figcaption>Fig. 6 — Sensitivity/specificity trade-off across decision thresholds; 0.44 was selected to prioritize catching at-risk patients.</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_07_experiment_comparison.png" alt="Experiment comparison across models">
+        <figcaption>Fig. 7 — Macro-F1 and AUC across all trialed models and balancing strategies.</figcaption>
+      </figure>
+    </div>
+    <p>
+      Class-weighted LightGBM with a lowered decision threshold (E08) gave
+      the best sensitivity (0.711) while keeping AUC competitive — this
+      became the basis for the final production model described in
+      <a href="results.html">Results</a>, which was further trained on
+      cleaned data including the optional lab features.
+    </p>
+  </section>
+
+  <section>
+    <h2>Why not just maximize accuracy?</h2>
+    <p>
+      The outcome is heavily imbalanced (most ICU stays do <em>not</em> end
+      in deterioration), so a model that predicts "stable" for everyone
+      scores ~90% accuracy while catching zero at-risk patients — exactly
+      the failure mode seen in the untuned baseline (E01: sensitivity
+      0.081). Every experiment was therefore judged primarily on
+      <strong>sensitivity</strong> and <strong>macro-F1</strong>, which
+      weight the minority (at-risk) class fairly, rather than on raw
+      accuracy.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
