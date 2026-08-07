@@ -47,6 +47,43 @@
 
   <section>
     <h2>Architecture</h2>
+    <p>
+      The system is a single desktop process with no client-server split and
+      no network hop between the UI and the model — the presentation layer
+      calls straight into the backend as regular Python function calls.
+    </p>
+    <figure class="figure">
+      <img src="assets/img/WhatsApp Image 2026-08-07 at 18.22.51.jpeg" alt="Architecture diagram: Presentation Layer (CustomTkinter GUI) connected via internal direct Python imports to the Application & Analytics Layer (in-process backend), which loads the local ICU dataset and model assets and feeds alert management and explanation logic">
+      <figcaption>System architecture: a CustomTkinter presentation layer talks to an in-process analytics/backend layer through direct Python imports — not HTTP.</figcaption>
+    </figure>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Presentation Layer</h3>
+        <p>CustomTkinter GUI. The clinician interacts with the dashboard; every screen is rendered by the same Python process that runs the model — there is no browser and no separate frontend service.</p>
+      </div>
+      <div class="card">
+        <h3>Internal Direct Python Imports</h3>
+        <p>The GUI reaches the backend by importing <code>backend/app.py</code> as a module (<code>sys.path.insert</code> + <code>from app import ...</code>), not by calling a REST endpoint. Function calls, not network requests.</p>
+      </div>
+      <div class="card">
+        <h3>Application &amp; Analytics Layer</h3>
+        <p>In-process backend. <code>Python Backend Functions</code> orchestrate three steps in order: <strong>Feature Engineering &amp; Input Validation</strong> (<code>compute_features</code>), <strong>Data Scaling</strong> (the fitted <code>StandardScaler</code>), and <strong>ML Risk Model Inference</strong> (LightGBM <code>predict_proba</code>).</p>
+      </div>
+      <div class="card">
+        <h3>Model Assets</h3>
+        <p><code>model.joblib</code>, <code>scaler.joblib</code>, and <code>model_meta.json</code>, loaded once from disk at startup and reused in memory for every prediction.</p>
+      </div>
+      <div class="card">
+        <h3>Local ICU Dataset (CSV Files)</h3>
+        <p><code>COMPLETE_ICU_RISK_DATASET.csv</code> is the offline training source consumed by <code>export_model.py</code> to produce the Model Assets — it is not read at inference time by the GUI.</p>
+      </div>
+      <div class="card">
+        <h3>Alert Management &amp; Explanation Logic</h3>
+        <p><code>generate_alerts()</code> and <code>get_risk_drivers()</code> turn the raw risk score into clinical alert text and the per-patient SHAP-style "Why This Risk Score?" breakdown shown in the GUI.</p>
+      </div>
+    </div>
+
     <div class="flow">
       <div class="step">GUI patient list</div>
       <div class="arrow">&#8594;</div>
