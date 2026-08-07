@@ -198,6 +198,14 @@ p { color: var(--ink-soft); }
 
 .card h3 { margin-top: 0; }
 
+.member-card {
+  text-align: center;
+}
+
+.member-card h3 {
+  margin: 4px 0;
+}
+
 .card.link-card {
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
