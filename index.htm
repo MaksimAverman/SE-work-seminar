@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm" class="active">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html">Application</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <h1>ICU Early Warning System</h1>
+    <p class="lead">
+      A machine-learning early-warning tool that predicts ICU patient
+      deterioration / mortality risk from early clinical indicators — heart
+      rate, blood pressure, age, and optional lab values — and explains each
+      prediction to the clinician through a bedside decision-support
+      dashboard.
+    </p>
+    <div class="badges">
+      <span class="badge">LightGBM classifier</span>
+      <span class="badge">AUC 0.786</span>
+      <span class="badge">Per-patient SHAP explanations</span>
+      <span class="badge">Desktop clinical dashboard</span>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><span class="num">0.786</span><span class="lbl">ROC-AUC</span></div>
+      <div class="stat"><span class="num">0.73</span><span class="lbl">Sensitivity</span></div>
+      <div class="stat"><span class="num">0.58</span><span class="lbl">Macro-F1</span></div>
+      <div class="stat"><span class="num">35</span><span class="lbl">Engineered features</span></div>
+    </div>
+  </div>
+</section>
+
+<main class="container">
+
+  <section>
+    <h2>What this project does</h2>
+    <p>
+      ICU patients can deteriorate hours before it is obvious on a routine
+      chart review. This project builds a risk-scoring pipeline — from raw
+      vital-sign data to a trained gradient-boosting model — and wraps it in
+      a clinical dashboard that flags at-risk patients, ranks them by
+      urgency, and explains <em>why</em> the model raised the alarm for each
+      individual patient.
+    </p>
+  </section>
+
+  <section>
+    <h2>Explore the project</h2>
+    <div class="grid">
+      <a class="card link-card" href="overview.html">
+        <h3>Overview</h3>
+        <p>Problem statement, dataset, and the end-to-end approach.</p>
+      </a>
+      <a class="card link-card" href="data.html">
+        <h3>Data &amp; EDA</h3>
+        <p>Dataset description, missing values, distributions, correlations.</p>
+      </a>
+      <a class="card link-card" href="methodology.html">
+        <h3>Methodology</h3>
+        <p>Hypothesis-driven feature engineering and the experiment log.</p>
+      </a>
+      <a class="card link-card" href="results.html">
+        <h3>Results</h3>
+        <p>Final model performance, ROC/PR curves, SHAP importance.</p>
+      </a>
+      <a class="card link-card" href="application.html">
+        <h3>Application</h3>
+        <p>The clinical decision-support dashboard, screenshot by screenshot.</p>
+      </a>
+      <a class="card link-card" href="downloads.html">
+        <h3>Downloads</h3>
+        <p>Notebooks, docs, and data — all viewable in the browser.</p>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <p class="disclaimer">
+      ⚠️ Research / educational project only. Not validated for clinical use
+      and must not be used to make real patient-care decisions.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Downloads — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html">Application</a>
+      <a href="downloads.html" class="active">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>Downloads &amp; Materials</h1>
+    <p>All project material — notebooks, documentation, and data — viewable directly in the browser, no extra software required.</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <section>
+    <h2>Notebooks</h2>
+    <p>Rendered as static HTML — open directly, no Jupyter install needed.</p>
+
+    <div class="download-item">
+      <div>
+        <strong>ICU_Risk_Final.ipynb</strong>
+        <div class="meta">Final modeling notebook — full pipeline from cleaning to the LightGBM model</div>
+      </div>
+      <a class="btn" href="materials/notebooks/ICU_Risk_Final.html">View</a>
+    </div>
+
+    <div class="download-item">
+      <div>
+        <strong>ICU_Risk_Analysis.ipynb</strong>
+        <div class="meta">Initial exploratory analysis</div>
+      </div>
+      <a class="btn" href="materials/notebooks/ICU_Risk_Analysis.html">View</a>
+    </div>
+
+    <div class="download-item">
+      <div>
+        <strong>ICU_Risk_Analysis_v2.ipynb</strong>
+        <div class="meta">Second iteration — refined features and experiments</div>
+      </div>
+      <a class="btn" href="materials/notebooks/ICU_Risk_Analysis_v2.html">View</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Documentation</h2>
+
+    <div class="download-item">
+      <div>
+        <strong>Project README</strong>
+        <div class="meta">Project layout and quick-start instructions</div>
+      </div>
+      <a class="btn" href="materials/docs/README.html">View</a>
+    </div>
+
+    <div class="download-item">
+      <div>
+        <strong>Model ↔ Frontend Integration Guide</strong>
+        <div class="meta">Full data-flow, the prediction contract, and recipes for retraining / extending the model</div>
+      </div>
+      <a class="btn" href="materials/docs/MODEL_INTEGRATION.html">View</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Data</h2>
+
+    <div class="download-item">
+      <div>
+        <strong>COMPLETE_ICU_RISK_DATASET.csv</strong>
+        <div class="meta">Full training dataset, MIMIC-derived (comma-separated text file, ~7.8 MB)</div>
+      </div>
+      <a class="btn" href="materials/data/COMPLETE_ICU_RISK_DATASET.csv">Download</a>
+    </div>
+
+    <div class="download-item">
+      <div>
+        <strong>experiment_log.csv</strong>
+        <div class="meta">Feature-engineering experiment log (see <a href="methodology.html">Methodology</a>)</div>
+      </div>
+      <a class="btn" href="materials/data/experiment_log.csv">Download</a>
+    </div>
+
+    <div class="download-item">
+      <div>
+        <strong>experiment_log_final.csv</strong>
+        <div class="meta">Model &amp; threshold comparison log (see <a href="methodology.html">Methodology</a>)</div>
+      </div>
+      <a class="btn" href="materials/data/experiment_log_final.csv">Download</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Additional figures</h2>
+    <p>
+      Supplementary visualizations from earlier notebook iterations, in
+      addition to the figures already shown on the
+      <a href="data.html">Data &amp; EDA</a>, <a href="methodology.html">Methodology</a>,
+      and <a href="results.html">Results</a> pages.
+    </p>
+    <div class="fig-grid">
+      <figure class="figure"><img src="assets/img/viz_05_missing_values.png" alt="Missing values (earlier iteration)"><figcaption>Missing values — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_02_target_distribution.png" alt="Target distribution (earlier iteration)"><figcaption>Target distribution — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_01_correlation_heatmap.png" alt="Correlation heatmap (earlier iteration)"><figcaption>Correlation heatmap — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_03_feature_distributions.png" alt="Feature distributions (earlier iteration)"><figcaption>Feature distributions — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_04_boxplots.png" alt="Boxplots (earlier iteration)"><figcaption>Boxplots — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_06_experiment_comparison.png" alt="Experiment comparison (earlier iteration)"><figcaption>Experiment comparison — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_07_confusion_matrix.png" alt="Confusion matrix (earlier iteration)"><figcaption>Confusion matrix — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_08_roc_pr_curves.png" alt="ROC/PR curves (earlier iteration)"><figcaption>ROC / PR curves — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/viz_09_feature_importance.png" alt="Feature importance (earlier iteration)"><figcaption>Feature importance — early iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/fig_02_target_distribution.png" alt="Target distribution (final)"><figcaption>Target distribution — final iteration</figcaption></figure>
+      <figure class="figure"><img src="assets/img/fig_04_indicator_distributions.png" alt="Indicator distributions"><figcaption>Clinical indicator distributions</figcaption></figure>
+      <figure class="figure"><img src="assets/img/fig_06_threshold_tuning.png" alt="Threshold tuning (alternate view)"><figcaption>Threshold tuning — alternate view</figcaption></figure>
+      <figure class="figure"><img src="assets/img/fig_07_model_comparison.png" alt="Model comparison (alternate view)"><figcaption>Model comparison — alternate view</figcaption></figure>
+      <figure class="figure"><img src="assets/img/fig_10_indicator_importance.png" alt="Indicator importance"><figcaption>Clinical indicator importance</figcaption></figure>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+<script src="assets/js/lightbox.js"></script>
+</body>
+</html>

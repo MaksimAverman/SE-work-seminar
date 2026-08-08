@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model ↔ Frontend Integration Guide — ICU Early Warning System</title>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<style>
+  main.doc { max-width: 860px; }
+  main.doc pre { background:#f0f3f7; border:1px solid var(--border); border-radius:8px; padding:14px; overflow-x:auto; }
+  main.doc code { background:#eef1f5; padding:1px 5px; border-radius:4px; font-size:0.92em; }
+  main.doc pre code { background:none; padding:0; }
+  main.doc table { margin: 14px 0; }
+  main.doc blockquote { border-left: 3px solid var(--blue); margin: 0; padding: 4px 16px; color: var(--ink-soft); background: var(--blue-pale); border-radius: 0 8px 8px 0; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="../../index.htm">Home</a>
+      <a href="../../overview.html">Overview</a>
+      <a href="../../data.html">Data &amp; EDA</a>
+      <a href="../../methodology.html">Methodology</a>
+      <a href="../../results.html">Results</a>
+      <a href="../../application.html">Application</a>
+      <a href="../../downloads.html" class="active">Downloads</a>
+      <a href="../../team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <div class="breadcrumb"><a href="../../downloads.html">Downloads</a> / Model ↔ Frontend Integration Guide</div>
+    <h1>Model ↔ Frontend Integration Guide</h1>
+  </div>
+</div>
+
+<main class="container doc">
+<h1 id="model-frontend-integration-guide">Model ↔ Frontend Integration Guide</h1>
+<p>This document explains <strong>how the trained ML model is wired to the web frontend</strong> in the
+ICU Early Warning System: the project layout, the request/response contract, the full
+data-flow from a browser form to a risk score, and step-by-step recipes for common
+changes (adding an input, retraining, swapping the model).</p>
+<hr />
+<h2 id="1-project-structure">1. Project structure</h2>
+<pre><code>avoda/
+├── backend/                     # All Python: API + training + artifacts
+│   ├── app.py                   # Flask server — serves the UI and the /predict API
+│   ├── export_model.py          # Trains the model and writes the artifacts below
+│   ├── requirements.txt         # Backend dependencies
+│   └── models/                  # Saved model artifacts (consumed by app.py)
+│       ├── model.joblib         #   trained LightGBM classifier
+│       ├── scaler.joblib        #   StandardScaler fitted on the training set
+│       └── model_meta.json      #   feature order, threshold, metrics, input ranges
+│
+├── frontend/                    # All UI assets (no Python)
+│   ├── templates/
+│   │   └── index.html           # The single-page form + results layout
+│   └── static/
+│       ├── app.js               # Collects form data, calls /predict, renders results
+│       └── style.css            # Styling
+│
+├── data/
+│   └── COMPLETE_ICU_RISK_DATASET.csv   # Raw training data (MIMIC-derived)
+│
+├── notebooks/                   # Exploratory analysis &amp; experiments
+│   ├── ICU_Risk_Analysis.ipynb
+│   ├── ICU_Risk_Analysis_v2.ipynb
+│   └── ICU_Risk_Final.ipynb
+│
+├── images/                      # Generated figures (fig_*.png, viz_*.png)
+├── experiments/                 # Experiment logs (experiment_log*.csv)
+└── docs/
+    └── MODEL_INTEGRATION.md      # (this file)
+</code></pre>
+<p><strong>Key idea:</strong> the backend and frontend live in <strong>separate folders</strong>, but Flask is
+configured to find the frontend at startup (see §3). The model is <strong>not</strong> called from
+the browser — the browser only talks to the <code>/predict</code> HTTP endpoint, and <code>app.py</code> owns
+the model.</p>
+<hr />
+<h2 id="2-architecture-at-a-glance">2. Architecture at a glance</h2>
+<pre><code> ┌─────────────┐     POST /predict (JSON)      ┌──────────────────────────────┐
+ │   Browser   │ ────────────────────────────▶ │           app.py             │
+ │ index.html  │                               │                              │
+ │  + app.js   │                               │  1. validate inputs          │
+ │             │                               │  2. compute_features()       │
+ │             │ ◀──────────────────────────── │  3. scaler.transform()       │
+ └─────────────┘     JSON result               │  4. model.predict_proba()    │
+                                               │  5. threshold + alerts       │
+                                               └──────────────────────────────┘
+                                                          │  loads at startup
+                                                          ▼
+                                               backend/models/{model,scaler,meta}
+</code></pre>
+<p>The model artifacts are loaded <strong>once</strong> when the Flask process starts, and reused for
+every request. There is no per-request disk I/O for the model.</p>
+<hr />
+<h2 id="3-how-flask-connects-to-the-separate-frontend-folder">3. How Flask connects to the separate <code>frontend/</code> folder</h2>
+<p>By default Flask looks for <code>templates/</code> and <code>static/</code> <em>next to</em> <code>app.py</code>. Because we
+moved the UI into <code>frontend/</code>, <code>app.py</code> points Flask at the right locations explicitly:</p>
+<pre><code class="language-python"># backend/app.py
+from pathlib import Path
+from flask import Flask
+
+BACKEND_DIR  = Path(__file__).resolve().parent          # .../avoda/backend
+PROJECT_ROOT = BACKEND_DIR.parent                       # .../avoda
+MODELS_DIR   = BACKEND_DIR / 'models'
+FRONTEND_DIR = PROJECT_ROOT / 'frontend'
+
+app = Flask(
+    __name__,
+    template_folder=str(FRONTEND_DIR / 'templates'),    # render_template('index.html')
+    static_folder=str(FRONTEND_DIR / 'static'),         # serves /static/*
+    static_url_path='/static',
+)
+</code></pre>
+<ul>
+<li><code>render_template('index.html')</code> resolves to <code>frontend/templates/index.html</code>.</li>
+<li><code>index.html</code> references <code>/static/style.css</code> and <code>/static/app.js</code>; Flask serves those
+  from <code>frontend/static/</code> because of <code>static_url_path='/static'</code>.</li>
+<li>All paths are <strong>absolute</strong> (derived from <code>__file__</code>), so the app runs correctly no
+  matter what the current working directory is.</li>
+</ul>
+<p>The model artifacts are loaded the same way — by absolute path:</p>
+<pre><code class="language-python">model  = joblib.load(MODELS_DIR / 'model.joblib')
+scaler = joblib.load(MODELS_DIR / 'scaler.joblib')
+with open(MODELS_DIR / 'model_meta.json') as f:
+    meta = json.load(f)
+</code></pre>
+<hr />
+<h2 id="4-the-predict-contract">4. The <code>/predict</code> contract</h2>
+<h3 id="request-post-predict-content-type-applicationjson">Request — <code>POST /predict</code>, <code>Content-Type: application/json</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>age</code></td>
+<td>number</td>
+<td>✅</td>
+<td>years</td>
+</tr>
+<tr>
+<td><code>gender</code></td>
+<td>string</td>
+<td>–</td>
+<td><code>"M"</code> / <code>"F"</code> (default <code>"M"</code>)</td>
+</tr>
+<tr>
+<td><code>heart_rate_mean</code></td>
+<td>number</td>
+<td>✅</td>
+<td>bpm</td>
+</tr>
+<tr>
+<td><code>heart_rate_min</code></td>
+<td>number</td>
+<td>✅</td>
+<td>bpm</td>
+</tr>
+<tr>
+<td><code>heart_rate_max</code></td>
+<td>number</td>
+<td>✅</td>
+<td>bpm</td>
+</tr>
+<tr>
+<td><code>systolic_bp_mean</code></td>
+<td>number</td>
+<td>✅</td>
+<td>mmHg</td>
+</tr>
+<tr>
+<td><code>systolic_bp_min</code></td>
+<td>number</td>
+<td>✅</td>
+<td>mmHg</td>
+</tr>
+<tr>
+<td><code>systolic_bp_max</code></td>
+<td>number</td>
+<td>✅</td>
+<td>mmHg</td>
+</tr>
+<tr>
+<td><code>diastolic_bp_mean</code></td>
+<td>number</td>
+<td>✅</td>
+<td>mmHg</td>
+</tr>
+<tr>
+<td><code>diastolic_bp_min</code></td>
+<td>number</td>
+<td>✅</td>
+<td>mmHg</td>
+</tr>
+<tr>
+<td><code>diastolic_bp_max</code></td>
+<td>number</td>
+<td>✅</td>
+<td>mmHg</td>
+</tr>
+<tr>
+<td><code>admit_hour</code></td>
+<td>int</td>
+<td>–</td>
+<td>0–23 (default 12)</td>
+</tr>
+<tr>
+<td><code>admit_dayofweek</code></td>
+<td>int</td>
+<td>–</td>
+<td>0=Mon … 6=Sun (default 2)</td>
+</tr>
+<tr>
+<td><code>lactate_max</code></td>
+<td>number</td>
+<td>–</td>
+<td><strong>optional</strong> lab; blank → cohort median used</td>
+</tr>
+<tr>
+<td><code>creatinine_max</code></td>
+<td>number</td>
+<td>–</td>
+<td><strong>optional</strong> lab; blank → cohort median used</td>
+</tr>
+</tbody>
+</table>
+<p>Missing <strong>required</strong> fields return <code>400</code> with <code>{"error": "Missing required field: ..."}</code>.</p>
+<h3 id="response-200-ok-json">Response — <code>200 OK</code>, JSON</h3>
+<pre><code class="language-jsonc">{
+  &quot;risk_score&quot;: 0.933,                 // model probability (0–1)
+  &quot;risk_percent&quot;: &quot;93.3%&quot;,
+  &quot;risk_level&quot;: &quot;CRITICAL&quot;,            // LOW | MODERATE | HIGH | CRITICAL
+  &quot;risk_color&quot;: &quot;#c0392b&quot;,
+  &quot;threshold&quot;: 0.4361,                 // decision threshold from model_meta.json
+  &quot;prediction&quot;: &quot;At Risk of Deterioration&quot;,
+  &quot;is_at_risk&quot;: true,
+  &quot;risk_drivers&quot;: [                    // per-patient explanation: why THIS score
+    {&quot;name&quot;: &quot;Max Lactate&quot;, &quot;feature&quot;: &quot;Lactate_max&quot;, &quot;value&quot;: &quot;7.2 mmol/L&quot;,
+     &quot;direction&quot;: &quot;increase&quot;, &quot;impact&quot;: 0.92}   // direction: increase|decrease
+  ],
+  &quot;clinical_alerts&quot;: [                 // human-readable warnings
+    {&quot;icon&quot;: &quot;🔴&quot;, &quot;text&quot;: &quot;Elevated lactate (6.5 mmol/L) — ...&quot;, &quot;level&quot;: &quot;critical&quot;}
+  ],
+  &quot;computed_indicators&quot;: {             // derived values shown in the UI
+    &quot;shock_index&quot;: 1.35, &quot;MAP&quot;: 61.7, &quot;pulse_pressure&quot;: 35.0,
+    &quot;HR_range&quot;: 50.0, &quot;SBP_range&quot;: 40.0, &quot;BP_range&quot;: 25.0
+  }
+}
+</code></pre>
+<hr />
+<h2 id="5-end-to-end-data-flow-request-lifecycle">5. End-to-end data flow (request lifecycle)</h2>
+<ol>
+<li><strong>Browser collects inputs</strong> — <code>frontend/static/app.js</code> reads the form on submit and
+   builds the JSON body. Optional labs are sent <strong>only when filled</strong>:</li>
+</ol>
+<p><code>js
+   const lactate = document.getElementById('lactate_max').value;
+   if (lactate !== '') data.lactate_max = parseFloat(lactate);</code></p>
+<ol start="2">
+<li>
+<p><strong>Validation</strong> — <code>app.py /predict</code> checks required fields and casts numeric types.
+   Empty-string labs are normalized to <code>None</code>.</p>
+</li>
+<li>
+<p><strong>Feature engineering</strong> — <code>compute_features(data)</code> turns ~10 raw inputs into the
+   <strong>exact 35 features</strong> the model expects, in the right order. This includes:
+   - derived values (<code>shock_index</code>, <code>pulse_pressure</code>, <code>MAP</code>, <code>age_x_hr</code>, …),
+   - clinical flags (<code>tachycardia</code>, <code>hypotension</code>, <code>map_low</code>, …),
+   - missing-indicator flags (<code>Lactate_max_missing</code>, …),
+   - median imputation for blank labs (medians read from <code>model_meta.json</code>).</p>
+</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>The single most important integration rule:</strong> the feature computation in
+<code>app.py</code> must mirror the training pipeline in <code>export_model.py</code> <em>exactly</em> — same
+formulas, same order. The order is enforced by reindexing to <code>meta['features']</code>:
+<code>X = pd.DataFrame([feature_dict])[FEATURES]</code>.</p>
+</blockquote>
+<ol start="4">
+<li>
+<p><strong>Scaling</strong> — <code>scaler.transform(X)</code> applies the same <code>StandardScaler</code> that was fit
+   during training.</p>
+</li>
+<li>
+<p><strong>Inference</strong> — <code>model.predict_proba(X_scaled)[0, 1]</code> gives the risk probability;
+   it is compared against <code>THRESHOLD</code> (from <code>model_meta.json</code>) to set <code>is_at_risk</code>.</p>
+</li>
+<li>
+<p><strong>Enrichment</strong> — the server attaches <code>risk_drivers</code>, <code>clinical_alerts</code>, and
+   <code>computed_indicators</code>, then returns JSON.</p>
+</li>
+<li>
+<p><strong>Rendering</strong> — <code>app.js</code> <code>displayResults()</code> animates the gauge, fills the alert list,
+   the risk-driver bars, and the computed-indicator grid.</p>
+</li>
+</ol>
+<h3 id="per-patient-explanation-risk_drivers">Per-patient explanation (<code>risk_drivers</code>)</h3>
+<p>The "Why This Risk Score" panel is <strong>specific to the patient just entered</strong>, not a
+global feature-importance chart. <code>get_risk_drivers()</code> asks LightGBM for SHAP
+contributions via <code>model.booster_.predict(X_scaled, pred_contrib=True)</code>: each feature
+gets a signed value in log-odds space — <strong>positive raises this patient's risk, negative
+lowers it</strong>. The server returns the top drivers by magnitude with a human-readable label,
+the patient's own value, the <code>direction</code> (<code>increase</code>/<code>decrease</code>), and the <code>impact</code>
+magnitude. The frontend shows ▲ (red) for risk-raising and ▼ (green) for risk-lowering
+factors. This uses LightGBM's built-in attribution — no extra <code>shap</code> dependency at serve
+time.</p>
+<hr />
+<h2 id="6-recipe-add-a-new-input-field-end-to-end">6. Recipe: add a new input field end-to-end</h2>
+<p>Suppose you want to add <strong>Temperature</strong> as a model feature. Touch these five places, in
+order:</p>
+<ol>
+<li>
+<p><strong>Training</strong> (<code>backend/export_model.py</code>)
+   - clean it in <code>valid_ranges</code> (e.g. <code>'Temp': (30, 45)</code>),
+   - add a <code>_missing</code> indicator + median fill if it can be absent,
+   - add <code>'Temp'</code> to the <code>features</code> list,
+   - add it to <code>raw_inputs</code> so its median lands in <code>model_meta.json</code>,
+   - <strong>re-run</strong> <code>python export_model.py</code> to regenerate the artifacts.</p>
+</li>
+<li>
+<p><strong>Backend feature build</strong> (<code>backend/app.py → compute_features</code>)
+   - read <code>data['temp']</code>, add it (and any derived/flag features) to <code>feature_dict</code>
+     using the <strong>same formula</strong> as training.</p>
+</li>
+<li>
+<p><strong>Backend validation / parsing</strong> (<code>backend/app.py → predict</code>)
+   - add it to <code>required</code> (if mandatory) or handle blank → median (if optional).</p>
+</li>
+<li>
+<p><strong>Frontend form</strong> (<code>frontend/templates/index.html</code>)
+   - add an <code>&lt;input id="temp" name="temp" ...&gt;</code> inside a card.</p>
+</li>
+<li>
+<p><strong>Frontend payload</strong> (<code>frontend/static/app.js</code>)
+   - add <code>temp: parseFloat(document.getElementById('temp').value)</code> to the <code>data</code> object.</p>
+</li>
+</ol>
+<p>Mismatch between steps 1 and 2 (different formula or missing feature) is the usual cause
+of wrong predictions — keep them in sync.</p>
+<hr />
+<h2 id="7-recipe-retrain-or-swap-the-model">7. Recipe: retrain or swap the model</h2>
+<p>The frontend and <code>/predict</code> API are <strong>model-agnostic</strong> — they only depend on
+<code>model_meta.json</code> (feature list, threshold, input ranges) and the <code>predict_proba</code>
+interface. To retrain or replace the model:</p>
+<pre><code class="language-bash">cd backend
+python export_model.py     # rewrites models/model.joblib, scaler.joblib, model_meta.json
+</code></pre>
+<p>Then restart the Flask process. The UI badge AUC, the decision threshold, and the lab
+imputation medians all update automatically because they are read from
+<code>model_meta.json</code> at startup. To use a <em>different</em> algorithm, change the estimator in
+<code>export_model.py</code> — as long as it exposes <code>predict_proba</code> and you keep the same feature
+list, nothing else needs to change.</p>
+<blockquote>
+<p>The current model is a <code>LGBMClassifier</code> (LightGBM). <code>app.py</code> calls
+<code>model.booster_.predict(..., pred_contrib=True)</code> for the per-patient "Why This Risk
+Score" panel — this is LightGBM-specific. If you switch to a non-LightGBM model,
+update <code>get_risk_drivers()</code> to use that model's attribution (e.g. the <code>shap</code> library's
+<code>TreeExplainer</code>, or coefficients for a linear model).</p>
+</blockquote>
+<hr />
+<h2 id="8-running-the-app">8. Running the app</h2>
+<pre><code class="language-bash"># from the project root
+pip install -r backend/requirements.txt
+cd backend
+python app.py
+# -&gt; http://localhost:5000
+</code></pre>
+<p><code>app.py</code> runs with <code>debug=True</code> on port 5000 for development. For production, serve it
+behind a WSGI server, e.g.:</p>
+<pre><code class="language-bash">cd backend
+gunicorn -w 4 -b 0.0.0.0:5000 app:app     # (Linux/macOS; pip install gunicorn)
+</code></pre>
+<hr />
+<h2 id="9-notes-gotchas">9. Notes &amp; gotchas</h2>
+<ul>
+<li><strong>Notebook paths:</strong> the notebooks were written when the CSV sat next to them. After
+  the reorg the data lives in <code>../data/</code>. If you re-run a notebook, update its
+  <code>pd.read_csv(...)</code> path to <code>../data/COMPLETE_ICU_RISK_DATASET.csv</code>.</li>
+<li><strong>Outlier cleaning:</strong> <code>export_model.py</code> replaces physiologically impossible values
+  (sensor artifacts, e.g. <code>SysBP=127105</code>, negatives, zeros) with <code>NaN</code> before median
+  imputation, via the <code>valid_ranges</code> dict. Keep these ranges consistent with the input
+  <code>min</code>/<code>max</code> you advertise in the UI.</li>
+<li><strong>Single source of truth:</strong> <code>model_meta.json</code> is the contract between training and
+  serving. Never hand-edit it — regenerate it via <code>export_model.py</code>.</li>
+<li><strong>Research use only:</strong> this tool is not validated for clinical use.
+```</li>
+</ul>
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="../../team.html">Team</a> · <a href="../../downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

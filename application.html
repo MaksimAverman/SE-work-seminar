@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html" class="active">Application</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>Application</h1>
+    <p>The ICU Clinical Decision Support System — a desktop dashboard built on the trained model.</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <section>
+    <h2>What it is</h2>
+    <p>
+      The model is served through a desktop dashboard (built with
+      <code>customtkinter</code>) that a clinician can use to review the
+      current patient list, open any patient for detail, and see a
+      plain-language explanation of the risk score. The app calls the
+      trained model directly — no web server involved — so it runs as a
+      single local process.
+    </p>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <p>
+      The system is a single desktop process with no client-server split and
+      no network hop between the UI and the model — the presentation layer
+      calls straight into the backend as regular Python function calls.
+    </p>
+    <figure class="figure">
+      <img src="assets/img/WhatsApp Image 2026-08-07 at 18.22.51.jpeg" alt="Architecture diagram: Presentation Layer (CustomTkinter GUI) connected via internal direct Python imports to the Application & Analytics Layer (in-process backend), which loads the local ICU dataset and model assets and feeds alert management and explanation logic">
+      <figcaption>System architecture: a CustomTkinter presentation layer talks to an in-process analytics/backend layer through direct Python imports — not HTTP.</figcaption>
+    </figure>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Presentation Layer</h3>
+        <p>CustomTkinter GUI. The clinician interacts with the dashboard; every screen is rendered by the same Python process that runs the model — there is no browser and no separate frontend service.</p>
+      </div>
+      <div class="card">
+        <h3>Internal Direct Python Imports</h3>
+        <p>The GUI reaches the backend by importing <code>backend/app.py</code> as a module (<code>sys.path.insert</code> + <code>from app import ...</code>), not by calling a REST endpoint. Function calls, not network requests.</p>
+      </div>
+      <div class="card">
+        <h3>Application &amp; Analytics Layer</h3>
+        <p>In-process backend. <code>Python Backend Functions</code> orchestrate three steps in order: <strong>Feature Engineering &amp; Input Validation</strong> (<code>compute_features</code>), <strong>Data Scaling</strong> (the fitted <code>StandardScaler</code>), and <strong>ML Risk Model Inference</strong> (LightGBM <code>predict_proba</code>).</p>
+      </div>
+      <div class="card">
+        <h3>Model Assets</h3>
+        <p><code>model.joblib</code>, <code>scaler.joblib</code>, and <code>model_meta.json</code>, loaded once from disk at startup and reused in memory for every prediction.</p>
+      </div>
+      <div class="card">
+        <h3>Local ICU Dataset (CSV Files)</h3>
+        <p><code>COMPLETE_ICU_RISK_DATASET.csv</code> is the offline training source consumed by <code>export_model.py</code> to produce the Model Assets — it is not read at inference time by the GUI.</p>
+      </div>
+      <div class="card">
+        <h3>Alert Management &amp; Explanation Logic</h3>
+        <p><code>generate_alerts()</code> and <code>get_risk_drivers()</code> turn the raw risk score into clinical alert text and the per-patient SHAP-style "Why This Risk Score?" breakdown shown in the GUI.</p>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="step">GUI patient list</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">compute_features()</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">scaler.transform()</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">LightGBM.predict_proba()</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">threshold + alerts + SHAP drivers</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Dashboard render</div>
+    </div>
+    <p>
+      Raw vitals are turned into the same 35 engineered features used in
+      training (<code>compute_features</code>), scaled with the fitted
+      <code>StandardScaler</code>, and scored by the LightGBM model. The
+      model's own SHAP-style attribution (<code>pred_contrib=True</code>)
+      produces the per-patient "Why This Risk Score?" explanation without
+      needing a separate explainability library at serve time. Full technical
+      detail is in the <a href="downloads.html">Model Integration Guide</a>.
+    </p>
+  </section>
+
+  <section>
+    <h2>Dashboard</h2>
+    <p>
+      The landing view lists every patient with their computed risk score,
+      color-coded risk level, and a one-click action to open the full
+      record.
+    </p>
+    <figure class="figure">
+      <img src="assets/img/gui_dashboard_screenshot.png" alt="ICU Dashboard screenshot showing patient risk list">
+      <figcaption>The main dashboard: patients ranked with LOW / CRITICAL risk levels and live-computed risk scores.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Patient summary</h2>
+    <p>
+      Opening a patient shows a summary card with the risk level, score,
+      prediction, diagnosis, and a list of suggested next steps generated
+      from the clinical alert rules.
+    </p>
+    <figure class="figure">
+      <img src="assets/img/gui_patient_summary.png" alt="Patient summary card screenshot">
+      <figcaption>Patient Summary Card for P1001 — CRITICAL risk (84/100), with suggested next steps.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Why this risk score?</h2>
+    <p>
+      This panel is the model's SHAP-based explanation for <em>this
+      specific patient</em> — not a global importance chart. Each row shows
+      the feature, the patient's own value, whether it raises or lowers
+      risk, and the magnitude of its contribution.
+    </p>
+    <figure class="figure">
+      <img src="assets/img/gui_risk_explanation.png" alt="Risk explanation panel screenshot with SHAP drivers">
+      <figcaption>Per-patient risk drivers for P1001: elevated shock index, creatinine, and age×heart-rate interaction are the top risk-raising factors.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Other dashboard views</h2>
+    <p>The left-hand navigation also provides:</p>
+    <div class="grid">
+      <div class="card"><h3>Priority Queue</h3><p>Patients sorted by urgency so the highest-risk cases surface first.</p></div>
+      <div class="card"><h3>Patient Details</h3><p>Full vitals, admission context, and raw inputs for a patient.</p></div>
+      <div class="card"><h3>Recommended Actions</h3><p>Clinical next-step suggestions generated from the alert rules.</p></div>
+      <div class="card"><h3>Alerts Workflow</h3><p>Tracking alert status (New / Reviewed / Escalated) per patient.</p></div>
+      <div class="card"><h3>What-if Analysis</h3><p>Interactively adjust a vital sign and see the risk score recompute live.</p></div>
+      <div class="card"><h3>Trend Monitoring</h3><p>How a patient's computed risk changes over time.</p></div>
+      <div class="card"><h3>Missing Data</h3><p>Which optional labs are missing and how they were imputed for scoring.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="disclaimer">
+      ⚠️ Research / educational prototype. Not a certified medical device
+      and not validated for real clinical decision-making.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+<script src="assets/js/lightbox.js"></script>
+</body>
+</html>
