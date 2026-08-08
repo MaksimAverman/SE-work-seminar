@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overview — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html" class="active">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html">Application</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>Overview</h1>
+    <p>The problem, the data, and the end-to-end approach behind the ICU Early Warning System.</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <section>
+    <h2>Problem statement</h2>
+    <p>
+      Patients admitted to an Intensive Care Unit can deteriorate rapidly,
+      and early physiological changes (rising heart rate, falling blood
+      pressure, rising lactate) often precede a clinically obvious crisis by
+      several hours. The goal of this project is to build a model that
+      flags <strong>which patients are at risk of deterioration</strong>
+      using only the vitals and labs that are already routinely captured in
+      the first hours of an ICU stay, so clinicians can prioritize their
+      attention.
+    </p>
+    <table>
+      <tr><th>Problem type</th><td>Binary classification (at risk / not at risk of deterioration)</td></tr>
+      <tr><th>Target variable</th><td>Deterioration / mortality outcome flag</td></tr>
+      <tr><th>Available data</th><td>Age, gender, heart rate (mean/min/max), systolic &amp; diastolic BP (mean/min/max), admission metadata, optional labs (lactate, creatinine)</td></tr>
+      <tr><th>Missing data</th><td>Lab values (lactate, creatinine) are frequently absent — not every patient is drawn early</td></tr>
+      <tr><th>Main risk</th><td>Missing a true deterioration (false negative) is clinically more costly than a false alarm</td></tr>
+      <tr><th>Success metric</th><td>ROC-AUC, sensitivity, and macro-F1, tuned for an imbalanced outcome</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Dataset</h2>
+    <p>
+      The model is trained on <code>COMPLETE_ICU_RISK_DATASET.csv</code>, a
+      MIMIC-derived ICU cohort with vitals, admission context, and
+      deterioration outcomes. See <a href="data.html">Data &amp; EDA</a> for
+      the full exploratory analysis, or download the raw file from
+      <a href="downloads.html">Downloads</a>.
+    </p>
+  </section>
+
+  <section>
+    <h2>End-to-end approach</h2>
+    <div class="flow">
+      <div class="step">Data cleaning &amp; EDA</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Hypothesis-driven feature engineering</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Baseline &amp; model comparison</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Class-imbalance handling</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Threshold tuning</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Final LightGBM model</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">Clinical dashboard (GUI)</div>
+    </div>
+    <p>
+      Every candidate feature and model was tested against a tracked
+      baseline before being accepted — see <a href="methodology.html">Methodology</a>
+      for the full experiment log. The final model is served through a
+      desktop clinical dashboard described in <a href="application.html">Application</a>.
+    </p>
+  </section>
+
+  <section>
+    <p class="disclaimer">
+      ⚠️ Research / educational project only. Not validated for clinical use.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
