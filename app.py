@@ -10,6 +10,7 @@ import time
 import sqlite3
 import datetime
 from pathlib import Path
+from PIL import Image
 
 APP_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = APP_DIR / "icu_system.db"
@@ -1558,18 +1559,15 @@ class ICUApp(ctk.CTk):
         patient = self.selected_patient
         self.show_title(f"Patient Details - {patient['id']}")
 
-        # סרגל עליון עם כפתור עריכה
-        top_bar = ctk.CTkFrame(self.main, fg_color="transparent")
-        top_bar.pack(fill="x", padx=25, pady=(0, 10))
+        # ----------------------------------------------------
+        # סרגל ראשי מתפצל (שמאל: פרטים, ימין: כפתור + אייקון מגדר)
+        # ----------------------------------------------------
+        main_layout_frame = ctk.CTkFrame(self.main, fg_color="transparent")
+        main_layout_frame.pack(fill="x", padx=25, pady=10)
 
-        ctk.CTkButton(
-            top_bar,
-            text="✏️ Edit Patient Vitals & Labs",
-            width=220,
-            height=32,
-            font=("Arial", 13, "bold"),
-            command=lambda: self.edit_patient_vitals(patient)
-        ).pack(side="right")
+        # אזור שמאל - טבלת הפרטים הקליניים
+        details_frame = ctk.CTkFrame(main_layout_frame)
+        details_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
 
         details = [
             ("Room Assignment", patient.get("room_number", "Unassigned")),
@@ -1589,11 +1587,53 @@ class ICUApp(ctk.CTk):
             ("Creatinine Max", patient.get("creatinine_max", "Missing")),
         ]
 
-        frame = ctk.CTkFrame(self.main)
-        frame.pack(fill="x", padx=25, pady=15)
-
         for key, value in details:
-            ctk.CTkLabel(frame, text=f"{key}: {value}", font=("Arial", 16)).pack(anchor="w", padx=25, pady=5)
+            ctk.CTkLabel(details_frame, text=f"{key}: {value}", font=("Arial", 16)).pack(anchor="w", padx=25, pady=5)
+
+        # אזור ימין - כפתור עריכה ותמונת מגדר מתחתיו
+        action_frame = ctk.CTkFrame(main_layout_frame, fg_color="transparent")
+        action_frame.pack(side="right", anchor="n", padx=10)
+
+        # כפתור עריכת מדדים
+        ctk.CTkButton(
+            action_frame,
+            text="✏️ Edit Patient Vitals & Labs",
+            width=220,
+            height=36,
+            font=("Arial", 13, "bold"),
+            command=lambda: self.edit_patient_vitals(patient)
+        ).pack(pady=(0, 20))
+
+        # טעינת התמונה המותאמת לפי מגדר (M / F)
+        gender = str(patient.get("gender", "M")).strip().upper()
+        image_name = "female.png" if gender == "F" else "male.png"
+
+        # חיפוש התמונה בתיקיית Assets או בתיקיית הראשי
+        possible_paths = [
+            APP_DIR / image_name,
+            APP_DIR / "assets" / image_name,
+            APP_DIR / "images" / image_name
+        ]
+
+        image_path = None
+        for path in possible_paths:
+            if path.exists():
+                image_path = path
+                break
+
+        if image_path:
+            try:
+                pil_img = Image.open(image_path)
+                gender_ctk_image = ctk.CTkImage(
+                    light_image=pil_img,
+                    dark_image=pil_img,
+                    size=(140, 160)
+                )
+
+                img_label = ctk.CTkLabel(action_frame, image=gender_ctk_image, text="")
+                img_label.pack(pady=10)
+            except Exception as e:
+                print(f"Could not load gender image: {e}")
 
     def edit_patient_vitals(self, patient):
         """חלון עריכת מדדים פיזיולוגיים ומעבדה + חישוב סיכון מחדש"""
