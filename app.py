@@ -14,8 +14,15 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = APP_DIR / "icu_system.db"
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
-from app import compute_features, generate_alerts, get_risk_drivers, model, scaler, FEATURES, THRESHOLD
+from backend.app import (
+    compute_features,
+    generate_alerts,
+    get_risk_drivers,
+    model,
+    scaler,
+    FEATURES,
+    THRESHOLD
+)
 import numpy as np
 
 ctk.set_appearance_mode("Light")
@@ -24,20 +31,6 @@ ctk.set_default_color_theme("blue")
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
-
-
-USERS = {
-    "doctor1": {
-        "password": hash_password("doctor123"),
-        "role": "Doctor",
-        "name": "Dr. Sarah Cohen"
-    },
-    "nurse1": {
-        "password": hash_password("nurse123"),
-        "role": "Nurse",
-        "name": "Nurse Daniel Levi"
-    }
-}
 
 
 def init_database():
@@ -82,9 +75,143 @@ def init_database():
     if "room_number" not in columns:
         cursor.execute("ALTER TABLE patients ADD COLUMN room_number TEXT")
 
+    # ==========================================================
+    # USERS TABLE
+    # ==========================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            role TEXT NOT NULL
+        )
+    """)
+
+    # Default demo users.
+    # INSERT OR IGNORE means they are created only once.
+    default_users = [
+        (
+            "doctor1",
+            hash_password("doctor123"),
+            "Dr. Sarah Cohen",
+            "Doctor"
+        ),
+        (
+            "nurse1",
+            hash_password("nurse123"),
+            "Nurse Daniel Levi",
+            "Nurse"
+        ),
+        (
+            "admin1",
+            hash_password("admin123"),
+            "System Administrator",
+            "Admin"
+        )
+    ]
+
+    cursor.executemany("""
+        INSERT OR IGNORE INTO users (
+            username,
+            password,
+            full_name,
+            role
+        )
+        VALUES (?, ?, ?, ?)
+    """, default_users)
+
     connection.commit()
     connection.close()
 
+def authenticate_user(username, password):
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT username, password, full_name, role
+        FROM users
+        WHERE username = ?
+    """, (username,))
+
+    row = cursor.fetchone()
+    connection.close()
+
+    if row is None:
+        return None
+
+    if row["password"] != hash_password(password):
+        return None
+
+    return {
+        "username": row["username"],
+        "name": row["full_name"],
+        "role": row["role"]
+    }
+
+
+def get_all_users():
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT username, full_name, role
+        FROM users
+        ORDER BY role, full_name
+    """)
+
+    rows = cursor.fetchall()
+    connection.close()
+
+    return [
+        {
+            "username": row["username"],
+            "name": row["full_name"],
+            "role": row["role"]
+        }
+        for row in rows
+    ]
+
+
+def add_user_to_database(username, password, full_name, role):
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO users (
+                username,
+                password,
+                full_name,
+                role
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
+            username,
+            hash_password(password),
+            full_name,
+            role
+        ))
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+
+def delete_user_from_database(username):
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        DELETE FROM users
+        WHERE username = ?
+    """, (username,))
+
+    connection.commit()
+    connection.close()
 
 def save_patient_to_database(patient):
     connection = sqlite3.connect(DATABASE_PATH)
@@ -201,8 +328,14 @@ def load_patients_from_database():
     return loaded_patients
 
 
-init_database()
-patients = load_patients_from_database()
+patients = []
+
+
+def initialize_application_data():
+    global patients
+
+    init_database()
+    patients = load_patients_from_database()
 
 
 def get_reassessment_info(patient):
@@ -487,7 +620,7 @@ class LoginWindow(ctk.CTk):
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
 
-        user = USERS.get(username)
+        user = authenticate_user(username, password)
 
         if user is None:
             self.status_label.configure(
@@ -495,20 +628,7 @@ class LoginWindow(ctk.CTk):
             )
             return
 
-        password_hash = hash_password(password)
-
-        if password_hash != user["password"]:
-            self.status_label.configure(
-                text="Invalid username or password."
-            )
-            return
-
-        self.logged_user = {
-            "username": username,
-            "name": user["name"],
-            "role": user["role"]
-        }
-
+        self.logged_user = user
         self.quit()
 
 
@@ -583,6 +703,7 @@ class ICUApp(ctk.CTk):
         super().__init__()
 
         self.logged_user = logged_user
+        self.switch_user_requested = False
 
         self.title("ICU Clinical Decision Support System")
         self.geometry("1350x800")
@@ -600,6 +721,315 @@ class ICUApp(ctk.CTk):
 
         self.create_sidebar()
         self.show_dashboard()
+
+    def switch_user(self):
+        confirm = messagebox.askyesno(
+            "Switch User",
+            "Do you want to sign out and switch to another user?"
+        )
+
+        if not confirm:
+            return
+
+        self.switch_user_requested = True
+        self.quit()
+
+    def show_admin_console(self):
+        if self.logged_user.get("role") != "Admin":
+            messagebox.showerror(
+                "Access Denied",
+                "Only administrators can access the Admin Console."
+            )
+            return
+
+        self.clear_main()
+        self.show_title("Admin Console")
+
+        # ==========================================================
+        # ADD USER SECTION
+        # ==========================================================
+
+        add_frame = ctk.CTkFrame(self.main)
+        add_frame.pack(
+            fill="x",
+            padx=30,
+            pady=(5, 20)
+        )
+
+        ctk.CTkLabel(
+            add_frame,
+            text="Add New User",
+            font=("Arial", 20, "bold")
+        ).pack(
+            anchor="w",
+            padx=20,
+            pady=(15, 10)
+        )
+
+        form = ctk.CTkFrame(
+            add_frame,
+            fg_color="transparent"
+        )
+        form.pack(
+            fill="x",
+            padx=20,
+            pady=10
+        )
+
+        username_entry = ctk.CTkEntry(
+            form,
+            width=200,
+            placeholder_text="Username"
+        )
+        username_entry.grid(
+            row=0,
+            column=0,
+            padx=8,
+            pady=8
+        )
+
+        name_entry = ctk.CTkEntry(
+            form,
+            width=220,
+            placeholder_text="Full Name"
+        )
+        name_entry.grid(
+            row=0,
+            column=1,
+            padx=8,
+            pady=8
+        )
+
+        password_entry = ctk.CTkEntry(
+            form,
+            width=200,
+            placeholder_text="Password",
+            show="*"
+        )
+        password_entry.grid(
+            row=0,
+            column=2,
+            padx=8,
+            pady=8
+        )
+
+        role_var = ctk.StringVar(
+            value="Nurse"
+        )
+
+        role_menu = ctk.CTkOptionMenu(
+            form,
+            values=[
+                "Doctor",
+                "Nurse",
+                "Admin"
+            ],
+            variable=role_var,
+            width=140
+        )
+        role_menu.grid(
+            row=0,
+            column=3,
+            padx=8,
+            pady=8
+        )
+
+        def add_new_user():
+            username = username_entry.get().strip()
+            full_name = name_entry.get().strip()
+            password = password_entry.get()
+            role = role_var.get()
+
+            if not username:
+                messagebox.showwarning(
+                    "Missing Information",
+                    "Username is required."
+                )
+                return
+
+            if not full_name:
+                messagebox.showwarning(
+                    "Missing Information",
+                    "Full name is required."
+                )
+                return
+
+            if not password:
+                messagebox.showwarning(
+                    "Missing Information",
+                    "Password is required."
+                )
+                return
+
+            if len(password) < 6:
+                messagebox.showwarning(
+                    "Invalid Password",
+                    "Password must contain at least 6 characters."
+                )
+                return
+
+            try:
+                add_user_to_database(
+                    username,
+                    password,
+                    full_name,
+                    role
+                )
+
+                messagebox.showinfo(
+                    "User Added",
+                    f"User '{username}' was created successfully."
+                )
+
+                self.show_admin_console()
+
+            except sqlite3.IntegrityError:
+                messagebox.showerror(
+                    "User Exists",
+                    f"The username '{username}' already exists."
+                )
+
+        ctk.CTkButton(
+            add_frame,
+            text="➕ Add User",
+            width=150,
+            command=add_new_user
+        ).pack(
+            anchor="e",
+            padx=25,
+            pady=(5, 15)
+        )
+
+        # ==========================================================
+        # EXISTING USERS
+        # ==========================================================
+
+        users_frame = ctk.CTkFrame(self.main)
+        users_frame.pack(
+            fill="x",
+            padx=30,
+            pady=10
+        )
+
+        ctk.CTkLabel(
+            users_frame,
+            text="System Users",
+            font=("Arial", 20, "bold")
+        ).pack(
+            anchor="w",
+            padx=20,
+            pady=(15, 10)
+        )
+
+        users = get_all_users()
+
+        table = ctk.CTkFrame(users_frame)
+        table.pack(
+            fill="x",
+            padx=20,
+            pady=(0, 20)
+        )
+
+        headers = [
+            "Username",
+            "Name",
+            "Role",
+            "Action"
+        ]
+
+        for col, header in enumerate(headers):
+            ctk.CTkLabel(
+                table,
+                text=header,
+                font=("Arial", 14, "bold")
+            ).grid(
+                row=0,
+                column=col,
+                padx=20,
+                pady=10
+            )
+
+        for row_number, user in enumerate(
+                users,
+                start=1
+        ):
+
+            ctk.CTkLabel(
+                table,
+                text=user["username"]
+            ).grid(
+                row=row_number,
+                column=0,
+                padx=20,
+                pady=8
+            )
+
+            ctk.CTkLabel(
+                table,
+                text=user["name"]
+            ).grid(
+                row=row_number,
+                column=1,
+                padx=20,
+                pady=8
+            )
+
+            ctk.CTkLabel(
+                table,
+                text=user["role"]
+            ).grid(
+                row=row_number,
+                column=2,
+                padx=20,
+                pady=8
+            )
+
+            def delete_selected_user(
+                    username=user["username"],
+                    name=user["name"]
+            ):
+                # Prevent admin deleting themselves while logged in
+                if username == self.logged_user["username"]:
+                    messagebox.showwarning(
+                        "Cannot Delete User",
+                        "You cannot delete the account "
+                        "you are currently logged in with."
+                    )
+                    return
+
+                confirm = messagebox.askyesno(
+                    "Delete User",
+                    f"Are you sure you want to delete "
+                    f"{name} ({username})?"
+                )
+
+                if not confirm:
+                    return
+
+                delete_user_from_database(
+                    username
+                )
+
+                messagebox.showinfo(
+                    "User Deleted",
+                    f"User '{username}' was deleted."
+                )
+
+                self.show_admin_console()
+
+            ctk.CTkButton(
+                table,
+                text="🗑 Delete",
+                width=90,
+                fg_color="#c0392b",
+                hover_color="#922b21",
+                command=delete_selected_user
+            ).grid(
+                row=row_number,
+                column=3,
+                padx=20,
+                pady=8
+            )
 
     def create_sidebar(self):
         ctk.CTkLabel(
@@ -650,6 +1080,20 @@ class ICUApp(ctk.CTk):
             ),
         ]
 
+        if self.logged_user.get("role") == "Admin":
+            sections.append(
+                (
+                    "ADMINISTRATION",
+                    [
+                        (
+                            "Admin Console",
+                            "⚙️  Admin Console",
+                            self.show_admin_console
+                        )
+                    ]
+                )
+            )
+
         self.sidebar_buttons = {}
 
         for section_title, buttons in sections:
@@ -674,6 +1118,31 @@ class ICUApp(ctk.CTk):
                 self.sidebar_buttons[key] = btn
 
         self.set_active_button("Dashboard")
+
+        ctk.CTkFrame(
+            self.sidebar,
+            height=2,
+            fg_color="#d0d0d0"
+        ).pack(
+            fill="x",
+            padx=15,
+            pady=(15, 8)
+        )
+
+        ctk.CTkButton(
+            self.sidebar,
+            text="🔄  Switch User",
+            anchor="w",
+            height=30,
+            font=("Arial", 12),
+            fg_color="#6c757d",
+            hover_color="#5a6268",
+            command=self.switch_user
+        ).pack(
+            fill="x",
+            padx=12,
+            pady=(3, 10)
+        )
 
     def edit_patient_room(self, patient):
         user_role = getattr(self, "logged_user", {}).get("role", "")
@@ -1530,7 +1999,6 @@ class ICUApp(ctk.CTk):
             ("hadm_id", "Hospital Admission ID", ""),
             ("icustay_id", "ICU Stay ID", ""),
             ("age", "Age", ""),
-            ("gender", "Gender (M/F)", "M"),
             ("heart_rate_mean", "Heart Rate Mean", ""),
             ("heart_rate_min", "Heart Rate Min", ""),
             ("heart_rate_max", "Heart Rate Max", ""),
@@ -1542,8 +2010,6 @@ class ICUApp(ctk.CTk):
             ("diastolic_bp_max", "Diastolic BP Max", ""),
             ("creatinine_max", "Creatinine Max (optional)", ""),
             ("lactate_max", "Lactate Max (optional)", ""),
-            ("admit_hour", "Admission Hour (0-23)", "12"),
-            ("admit_dayofweek", "Admission Day (0=Mon ... 6=Sun)", "2"),
         ]
 
         entries = {}
@@ -1561,66 +2027,384 @@ class ICUApp(ctk.CTk):
                 entry.insert(0, default)
             entries[key] = entry
 
+        options_frame = ctk.CTkFrame(
+            self.main,
+            fg_color="transparent"
+        )
+        options_frame.pack(pady=10)
+
+        # Gender
+        ctk.CTkLabel(
+            options_frame,
+            text="Gender",
+            width=150,
+            anchor="w"
+        ).grid(row=0, column=0, padx=10, pady=8)
+
+        gender_var = ctk.StringVar(value="Female")
+
+        gender_menu = ctk.CTkOptionMenu(
+            options_frame,
+            values=["Female", "Male"],
+            variable=gender_var,
+            width=180
+        )
+        gender_menu.grid(row=0, column=1, padx=10, pady=8)
+
+        # Admission Time
+        ctk.CTkLabel(
+            options_frame,
+            text="Admission Time",
+            width=150,
+            anchor="w"
+        ).grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=8
+        )
+
+        time_frame = ctk.CTkFrame(
+            options_frame,
+            fg_color="transparent"
+        )
+        time_frame.grid(
+            row=1,
+            column=1,
+            padx=10,
+            pady=8
+        )
+
+        admit_hour_var = ctk.StringVar(value="12")
+        admit_minute_var = ctk.StringVar(value="00")
+
+        hour_menu = ctk.CTkOptionMenu(
+            time_frame,
+            values=[f"{i:02d}" for i in range(24)],
+            variable=admit_hour_var,
+            width=80
+        )
+        hour_menu.pack(side="left")
+
+        ctk.CTkLabel(
+            time_frame,
+            text=":",
+            font=("Arial", 18, "bold")
+        ).pack(
+            side="left",
+            padx=5
+        )
+
+        minute_menu = ctk.CTkOptionMenu(
+            time_frame,
+            values=[
+                "00",
+                "15",
+                "30",
+                "45"
+            ],
+            variable=admit_minute_var,
+            width=80
+        )
+        minute_menu.pack(side="left")
+
+        # Admission Day
+        ctk.CTkLabel(
+            options_frame,
+            text="Admission Day",
+            width=150,
+            anchor="w"
+        ).grid(row=2, column=0, padx=10, pady=8)
+
+        admit_day_var = ctk.StringVar(value="Monday")
+
+        day_menu = ctk.CTkOptionMenu(
+            options_frame,
+            values=[
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+            ],
+            variable=admit_day_var,
+            width=180
+        )
+        day_menu.grid(row=2, column=1, padx=10, pady=8)
+
         def save_patient():
             try:
+
+                # ============================================
+                # Required IDs
+                # ============================================
+
+                subject_id = entries["subject_id"].get().strip()
+                hadm_id = entries["hadm_id"].get().strip()
+                icustay_id = entries["icustay_id"].get().strip()
+
+                if not subject_id:
+                    raise ValueError("Subject ID is required.")
+
+                if not hadm_id:
+                    raise ValueError("Hospital Admission ID is required.")
+
+                if not icustay_id:
+                    raise ValueError("ICU Stay ID is required.")
+
+                # ============================================
+                # Prevent duplicate ICU stay
+                # ============================================
+
+                for existing_patient in patients:
+                    if str(
+                            existing_patient.get("icustay_id", "")
+                    ) == icustay_id:
+                        raise ValueError(
+                            f"ICU Stay ID {icustay_id} already exists."
+                        )
+
+                # ============================================
+                # Required numeric fields
+                # ============================================
+
                 required_numeric = [
-                    "age", "heart_rate_mean", "heart_rate_min", "heart_rate_max",
-                    "systolic_bp_mean", "systolic_bp_min", "systolic_bp_max",
-                    "diastolic_bp_mean", "diastolic_bp_min", "diastolic_bp_max"
+                    "age",
+
+                    "heart_rate_mean",
+                    "heart_rate_min",
+                    "heart_rate_max",
+
+                    "systolic_bp_mean",
+                    "systolic_bp_min",
+                    "systolic_bp_max",
+
+                    "diastolic_bp_mean",
+                    "diastolic_bp_min",
+                    "diastolic_bp_max"
                 ]
 
-                for field in required_numeric:
-                    if not entries[field].get().strip():
-                        raise ValueError(f"{field.replace('_', ' ').title()} is required.")
+                values = {}
 
-                gender = entries["gender"].get().strip().upper()
-                if gender not in ["M", "F"]:
-                    raise ValueError("Gender must be M or F.")
+                for field in required_numeric:
+
+                    raw_value = entries[field].get().strip()
+
+                    if not raw_value:
+                        raise ValueError(
+                            f"{field.replace('_', ' ').title()} is required."
+                        )
+
+                    try:
+                        values[field] = float(raw_value)
+
+                    except ValueError:
+                        raise ValueError(
+                            f"{field.replace('_', ' ').title()} "
+                            f"must be a numeric value."
+                        )
+
+                # ============================================
+                # Age validation
+                # ============================================
+
+                age = values["age"]
+
+                if age < 0 or age > 120:
+                    raise ValueError(
+                        "Age must be between 0 and 120."
+                    )
+
+                # ============================================
+                # Physiological values must be positive
+                # ============================================
+
+                vital_fields = [
+                    "heart_rate_mean",
+                    "heart_rate_min",
+                    "heart_rate_max",
+
+                    "systolic_bp_mean",
+                    "systolic_bp_min",
+                    "systolic_bp_max",
+
+                    "diastolic_bp_mean",
+                    "diastolic_bp_min",
+                    "diastolic_bp_max"
+                ]
+
+                for field in vital_fields:
+                    if values[field] <= 0:
+                        raise ValueError(
+                            f"{field.replace('_', ' ').title()} "
+                            f"must be greater than 0."
+                        )
+
+                # ============================================
+                # Min / Mean / Max validation
+                # ============================================
+
+                if not (
+                        values["heart_rate_min"]
+                        <= values["heart_rate_mean"]
+                        <= values["heart_rate_max"]
+                ):
+                    raise ValueError(
+                        "Heart Rate must satisfy: "
+                        "Min ≤ Mean ≤ Max."
+                    )
+
+                if not (
+                        values["systolic_bp_min"]
+                        <= values["systolic_bp_mean"]
+                        <= values["systolic_bp_max"]
+                ):
+                    raise ValueError(
+                        "Systolic BP must satisfy: "
+                        "Min ≤ Mean ≤ Max."
+                    )
+
+                if not (
+                        values["diastolic_bp_min"]
+                        <= values["diastolic_bp_mean"]
+                        <= values["diastolic_bp_max"]
+                ):
+                    raise ValueError(
+                        "Diastolic BP must satisfy: "
+                        "Min ≤ Mean ≤ Max."
+                    )
+
+                # ============================================
+                # Optional lab values
+                # ============================================
+
+                creatinine = self.optional_float(
+                    entries["creatinine_max"].get()
+                )
+
+                lactate = self.optional_float(
+                    entries["lactate_max"].get()
+                )
+
+                if creatinine is not None and creatinine < 0:
+                    raise ValueError(
+                        "Creatinine cannot be negative."
+                    )
+
+                if lactate is not None and lactate < 0:
+                    raise ValueError(
+                        "Lactate cannot be negative."
+                    )
+
+                # ============================================
+                # Dropdown values
+                # ============================================
+
+                gender = (
+                    "F"
+                    if gender_var.get() == "Female"
+                    else "M"
+                )
+
+                admit_hour = int(
+                    admit_hour_var.get()
+                )
+
+                day_mapping = {
+                    "Monday": 0,
+                    "Tuesday": 1,
+                    "Wednesday": 2,
+                    "Thursday": 3,
+                    "Friday": 4,
+                    "Saturday": 5,
+                    "Sunday": 6
+                }
+
+                admit_day = day_mapping[
+                    admit_day_var.get()
+                ]
+
+                # ============================================
+                # Create patient
+                # ============================================
 
                 patient = {
-                    "id": entries["subject_id"].get().strip() or f"P{len(patients) + 1001}",
-                    "subject_id": entries["subject_id"].get().strip(),
-                    "hadm_id": entries["hadm_id"].get().strip(),
-                    "icustay_id": entries["icustay_id"].get().strip(),
-                    "age": float(entries["age"].get()),
+                    "id": subject_id,
+                    "subject_id": subject_id,
+                    "hadm_id": hadm_id,
+                    "icustay_id": icustay_id,
+
+                    "age": age,
                     "gender": gender,
-                    "heart_rate_mean": float(entries["heart_rate_mean"].get()),
-                    "heart_rate_min": float(entries["heart_rate_min"].get()),
-                    "heart_rate_max": float(entries["heart_rate_max"].get()),
-                    "systolic_bp_mean": float(entries["systolic_bp_mean"].get()),
-                    "systolic_bp_min": float(entries["systolic_bp_min"].get()),
-                    "systolic_bp_max": float(entries["systolic_bp_max"].get()),
-                    "diastolic_bp_mean": float(entries["diastolic_bp_mean"].get()),
-                    "diastolic_bp_min": float(entries["diastolic_bp_min"].get()),
-                    "diastolic_bp_max": float(entries["diastolic_bp_max"].get()),
-                    "creatinine_max": self.optional_float(entries["creatinine_max"].get()),
-                    "lactate_max": self.optional_float(entries["lactate_max"].get()),
-                    "admit_hour": int(entries["admit_hour"].get()),
-                    "admit_dayofweek": int(entries["admit_dayofweek"].get()),
+
+                    "heart_rate_mean":
+                        values["heart_rate_mean"],
+                    "heart_rate_min":
+                        values["heart_rate_min"],
+                    "heart_rate_max":
+                        values["heart_rate_max"],
+
+                    "systolic_bp_mean":
+                        values["systolic_bp_mean"],
+                    "systolic_bp_min":
+                        values["systolic_bp_min"],
+                    "systolic_bp_max":
+                        values["systolic_bp_max"],
+
+                    "diastolic_bp_mean":
+                        values["diastolic_bp_mean"],
+                    "diastolic_bp_min":
+                        values["diastolic_bp_min"],
+                    "diastolic_bp_max":
+                        values["diastolic_bp_max"],
+
+                    "creatinine_max": creatinine,
+                    "lactate_max": lactate,
+
+                    "admit_hour": admit_hour,
+                    "admit_dayofweek": admit_day,
+
                     "icu_hours": 0,
                     "admission_type": "Manual Entry",
                     "diagnosis": "Not provided",
                     "alert_status": "New",
                     "clinical_note": "",
-                    "room_number": f"ICU-{(len(patients) % 15) + 101}"
+
+                    "room_number":
+                        f"ICU-{(len(patients) % 15) + 101}"
                 }
 
                 result = call_model(patient)
+
                 patients.append(patient)
+
                 save_patient_to_database(patient)
+
                 self.selected_patient = patient
 
                 messagebox.showinfo(
                     "Patient Added",
                     f"Patient {patient['id']} was added successfully.\n\n"
-                    f"Risk level: {result['risk_level']}\nRisk: {result['risk_percent']}"
+                    f"Risk level: {result['risk_level']}\n"
+                    f"Risk: {result['risk_percent']}"
                 )
+
                 self.show_patient_summary()
 
+
             except ValueError as e:
-                messagebox.showerror("Invalid Input", str(e))
+                messagebox.showerror(
+                    "Invalid Input",
+                    str(e)
+                )
+
             except Exception as e:
-                messagebox.showerror("Error", f"Could not add patient:\n{e}")
+                messagebox.showerror(
+                    "Error",
+                    f"Could not add patient:\n{e}"
+                )
 
         ctk.CTkButton(self.main, text="Add Patient & Calculate Risk", width=280, height=45, command=save_patient).pack(pady=25)
 
@@ -1813,16 +2597,56 @@ class ICUApp(ctk.CTk):
 
 
 if __name__ == "__main__":
-    login = LoginWindow()
-    login.mainloop()
 
-    logged_user = getattr(login, "logged_user", None)
+    initialize_application_data()
 
-    try:
-        login.destroy()
-    except Exception:
-        pass
+    while True:
 
-    if logged_user is not None:
+        # ==============================================
+        # LOGIN
+        # ==============================================
+
+        login = LoginWindow()
+        login.mainloop()
+
+        logged_user = getattr(
+            login,
+            "logged_user",
+            None
+        )
+
+        try:
+            login.destroy()
+        except Exception:
+            pass
+
+        # Login window was closed without logging in
+        if logged_user is None:
+            break
+
+        # ==============================================
+        # MAIN APPLICATION
+        # ==============================================
+
         app = ICUApp(logged_user)
         app.mainloop()
+
+        switch_requested = getattr(
+            app,
+            "switch_user_requested",
+            False
+        )
+
+        try:
+            app.destroy()
+        except Exception:
+            pass
+
+        # If Switch User was clicked,
+        # restart loop and show LoginWindow again.
+        if switch_requested:
+            continue
+
+        # Normal application close
+        break
+
