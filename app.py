@@ -76,10 +76,6 @@ def init_database():
     if "room_number" not in columns:
         cursor.execute("ALTER TABLE patients ADD COLUMN room_number TEXT")
 
-    # ==========================================================
-    # USERS TABLE
-    # ==========================================================
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -89,41 +85,20 @@ def init_database():
         )
     """)
 
-    # Default demo users.
-    # INSERT OR IGNORE means they are created only once.
     default_users = [
-        (
-            "doctor1",
-            hash_password("doctor123"),
-            "Dr. Sarah Cohen",
-            "Doctor"
-        ),
-        (
-            "nurse1",
-            hash_password("nurse123"),
-            "Nurse Daniel Levi",
-            "Nurse"
-        ),
-        (
-            "admin1",
-            hash_password("admin123"),
-            "System Administrator",
-            "Admin"
-        )
+        ("doctor1", hash_password("doctor123"), "Dr. Sarah Cohen", "Doctor"),
+        ("nurse1", hash_password("nurse123"), "Nurse Daniel Levi", "Nurse"),
+        ("admin1", hash_password("admin123"), "System Administrator", "Admin")
     ]
 
     cursor.executemany("""
-        INSERT OR IGNORE INTO users (
-            username,
-            password,
-            full_name,
-            role
-        )
+        INSERT OR IGNORE INTO users (username, password, full_name, role)
         VALUES (?, ?, ?, ?)
     """, default_users)
 
     connection.commit()
     connection.close()
+
 
 def authenticate_user(username, password):
     connection = sqlite3.connect(DATABASE_PATH)
@@ -139,10 +114,7 @@ def authenticate_user(username, password):
     row = cursor.fetchone()
     connection.close()
 
-    if row is None:
-        return None
-
-    if row["password"] != hash_password(password):
+    if row is None or row["password"] != hash_password(password):
         return None
 
     return {
@@ -157,47 +129,22 @@ def get_all_users():
     connection.row_factory = sqlite3.Row
     cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT username, full_name, role
-        FROM users
-        ORDER BY role, full_name
-    """)
-
+    cursor.execute("SELECT username, full_name, role FROM users ORDER BY role, full_name")
     rows = cursor.fetchall()
     connection.close()
 
-    return [
-        {
-            "username": row["username"],
-            "name": row["full_name"],
-            "role": row["role"]
-        }
-        for row in rows
-    ]
+    return [{"username": row["username"], "name": row["full_name"], "role": row["role"]} for row in rows]
 
 
 def add_user_to_database(username, password, full_name, role):
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
-
     try:
         cursor.execute("""
-            INSERT INTO users (
-                username,
-                password,
-                full_name,
-                role
-            )
+            INSERT INTO users (username, password, full_name, role)
             VALUES (?, ?, ?, ?)
-        """, (
-            username,
-            hash_password(password),
-            full_name,
-            role
-        ))
-
+        """, (username, hash_password(password), full_name, role))
         connection.commit()
-
     finally:
         connection.close()
 
@@ -205,14 +152,10 @@ def add_user_to_database(username, password, full_name, role):
 def delete_user_from_database(username):
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
-
-    cursor.execute("""
-        DELETE FROM users
-        WHERE username = ?
-    """, (username,))
-
+    cursor.execute("DELETE FROM users WHERE username = ?", (username,))
     connection.commit()
     connection.close()
+
 
 def save_patient_to_database(patient):
     connection = sqlite3.connect(DATABASE_PATH)
@@ -334,7 +277,6 @@ patients = []
 
 def initialize_application_data():
     global patients
-
     init_database()
     patients = load_patients_from_database()
 
@@ -348,13 +290,7 @@ def get_reassessment_info(patient):
             return "⚠️ Urgent: Pending initial review!", "#c0392b"
         return "ℹ️ Pending review", "#e67e22"
 
-    review_intervals = {
-        "CRITICAL": 15,
-        "HIGH": 30,
-        "MODERATE": 60,
-        "LOW": 240
-    }
-
+    review_intervals = {"CRITICAL": 15, "HIGH": 30, "MODERATE": 60, "LOW": 240}
     interval = review_intervals.get(level, 60)
 
     try:
@@ -735,6 +671,16 @@ class ICUApp(ctk.CTk):
         self.switch_user_requested = True
         self.quit()
 
+    def toggle_appearance_mode(self):
+        """מעבר מהיר בין מצב כהה (Dark Mode) למצב בהיר (Light Mode)"""
+        current_mode = ctk.get_appearance_mode()
+        if current_mode == "Light":
+            ctk.set_appearance_mode("Dark")
+            self.theme_button.configure(text="☀️  Light Mode")
+        else:
+            ctk.set_appearance_mode("Light")
+            self.theme_button.configure(text="🌙  Dark Mode")
+
     def show_admin_console(self):
         if self.logged_user.get("role") != "Admin":
             messagebox.showerror(
@@ -746,94 +692,26 @@ class ICUApp(ctk.CTk):
         self.clear_main()
         self.show_title("Admin Console")
 
-        # ==========================================================
-        # ADD USER SECTION
-        # ==========================================================
-
         add_frame = ctk.CTkFrame(self.main)
-        add_frame.pack(
-            fill="x",
-            padx=30,
-            pady=(5, 20)
-        )
+        add_frame.pack(fill="x", padx=30, pady=(5, 20))
 
-        ctk.CTkLabel(
-            add_frame,
-            text="Add New User",
-            font=("Arial", 20, "bold")
-        ).pack(
-            anchor="w",
-            padx=20,
-            pady=(15, 10)
-        )
+        ctk.CTkLabel(add_frame, text="Add New User", font=("Arial", 20, "bold")).pack(anchor="w", padx=20, pady=(15, 10))
 
-        form = ctk.CTkFrame(
-            add_frame,
-            fg_color="transparent"
-        )
-        form.pack(
-            fill="x",
-            padx=20,
-            pady=10
-        )
+        form = ctk.CTkFrame(add_frame, fg_color="transparent")
+        form.pack(fill="x", padx=20, pady=10)
 
-        username_entry = ctk.CTkEntry(
-            form,
-            width=200,
-            placeholder_text="Username"
-        )
-        username_entry.grid(
-            row=0,
-            column=0,
-            padx=8,
-            pady=8
-        )
+        username_entry = ctk.CTkEntry(form, width=200, placeholder_text="Username")
+        username_entry.grid(row=0, column=0, padx=8, pady=8)
 
-        name_entry = ctk.CTkEntry(
-            form,
-            width=220,
-            placeholder_text="Full Name"
-        )
-        name_entry.grid(
-            row=0,
-            column=1,
-            padx=8,
-            pady=8
-        )
+        name_entry = ctk.CTkEntry(form, width=220, placeholder_text="Full Name")
+        name_entry.grid(row=0, column=1, padx=8, pady=8)
 
-        password_entry = ctk.CTkEntry(
-            form,
-            width=200,
-            placeholder_text="Password",
-            show="*"
-        )
-        password_entry.grid(
-            row=0,
-            column=2,
-            padx=8,
-            pady=8
-        )
+        password_entry = ctk.CTkEntry(form, width=200, placeholder_text="Password", show="*")
+        password_entry.grid(row=0, column=2, padx=8, pady=8)
 
-        role_var = ctk.StringVar(
-            value="Nurse"
-        )
-
-        role_menu = ctk.CTkOptionMenu(
-            form,
-            values=[
-                "Doctor",
-                "Nurse",
-                "Admin"
-            ],
-            variable=role_var,
-            width=140
-        )
-        role_menu.grid(
-            row=0,
-            column=3,
-            padx=8,
-            pady=8
-        )
+        role_var = ctk.StringVar(value="Nurse")
+        role_menu = ctk.CTkOptionMenu(form, values=["Doctor", "Nurse", "Admin"], variable=role_var, width=140)
+        role_menu.grid(row=0, column=3, padx=8, pady=8)
 
         def add_new_user():
             username = username_entry.get().strip()
@@ -841,278 +719,95 @@ class ICUApp(ctk.CTk):
             password = password_entry.get()
             role = role_var.get()
 
-            if not username:
-                messagebox.showwarning(
-                    "Missing Information",
-                    "Username is required."
-                )
-                return
-
-            if not full_name:
-                messagebox.showwarning(
-                    "Missing Information",
-                    "Full name is required."
-                )
-                return
-
-            if not password:
-                messagebox.showwarning(
-                    "Missing Information",
-                    "Password is required."
-                )
+            if not username or not full_name or not password:
+                messagebox.showwarning("Missing Information", "All fields are required.")
                 return
 
             if len(password) < 6:
-                messagebox.showwarning(
-                    "Invalid Password",
-                    "Password must contain at least 6 characters."
-                )
+                messagebox.showwarning("Invalid Password", "Password must contain at least 6 characters.")
                 return
 
             try:
-                add_user_to_database(
-                    username,
-                    password,
-                    full_name,
-                    role
-                )
-
-                messagebox.showinfo(
-                    "User Added",
-                    f"User '{username}' was created successfully."
-                )
-
+                add_user_to_database(username, password, full_name, role)
+                messagebox.showinfo("User Added", f"User '{username}' was created successfully.")
                 self.show_admin_console()
-
             except sqlite3.IntegrityError:
-                messagebox.showerror(
-                    "User Exists",
-                    f"The username '{username}' already exists."
-                )
+                messagebox.showerror("User Exists", f"The username '{username}' already exists.")
 
-        ctk.CTkButton(
-            add_frame,
-            text="➕ Add User",
-            width=150,
-            command=add_new_user
-        ).pack(
-            anchor="e",
-            padx=25,
-            pady=(5, 15)
-        )
-
-        # ==========================================================
-        # EXISTING USERS
-        # ==========================================================
+        ctk.CTkButton(add_frame, text="➕ Add User", width=150, command=add_new_user).pack(anchor="e", padx=25, pady=(5, 15))
 
         users_frame = ctk.CTkFrame(self.main)
-        users_frame.pack(
-            fill="x",
-            padx=30,
-            pady=10
-        )
+        users_frame.pack(fill="x", padx=30, pady=10)
 
-        ctk.CTkLabel(
-            users_frame,
-            text="System Users",
-            font=("Arial", 20, "bold")
-        ).pack(
-            anchor="w",
-            padx=20,
-            pady=(15, 10)
-        )
+        ctk.CTkLabel(users_frame, text="System Users", font=("Arial", 20, "bold")).pack(anchor="w", padx=20, pady=(15, 10))
 
         users = get_all_users()
-
         table = ctk.CTkFrame(users_frame)
-        table.pack(
-            fill="x",
-            padx=20,
-            pady=(0, 20)
-        )
+        table.pack(fill="x", padx=20, pady=(0, 20))
 
-        headers = [
-            "Username",
-            "Name",
-            "Role",
-            "Action"
-        ]
-
+        headers = ["Username", "Name", "Role", "Action"]
         for col, header in enumerate(headers):
-            ctk.CTkLabel(
-                table,
-                text=header,
-                font=("Arial", 14, "bold")
-            ).grid(
-                row=0,
-                column=col,
-                padx=20,
-                pady=10
-            )
+            ctk.CTkLabel(table, text=header, font=("Arial", 14, "bold")).grid(row=0, column=col, padx=20, pady=10)
 
-        for row_number, user in enumerate(
-                users,
-                start=1
-        ):
+        for row_number, user in enumerate(users, start=1):
+            ctk.CTkLabel(table, text=user["username"]).grid(row=row_number, column=0, padx=20, pady=8)
+            ctk.CTkLabel(table, text=user["name"]).grid(row=row_number, column=1, padx=20, pady=8)
+            ctk.CTkLabel(table, text=user["role"]).grid(row=row_number, column=2, padx=20, pady=8)
 
-            ctk.CTkLabel(
-                table,
-                text=user["username"]
-            ).grid(
-                row=row_number,
-                column=0,
-                padx=20,
-                pady=8
-            )
-
-            ctk.CTkLabel(
-                table,
-                text=user["name"]
-            ).grid(
-                row=row_number,
-                column=1,
-                padx=20,
-                pady=8
-            )
-
-            ctk.CTkLabel(
-                table,
-                text=user["role"]
-            ).grid(
-                row=row_number,
-                column=2,
-                padx=20,
-                pady=8
-            )
-
-            def delete_selected_user(
-                    username=user["username"],
-                    name=user["name"]
-            ):
-                # Prevent admin deleting themselves while logged in
+            def delete_selected_user(username=user["username"], name=user["name"]):
                 if username == self.logged_user["username"]:
-                    messagebox.showwarning(
-                        "Cannot Delete User",
-                        "You cannot delete the account "
-                        "you are currently logged in with."
-                    )
+                    messagebox.showwarning("Cannot Delete User", "You cannot delete the account you are currently logged in with.")
                     return
 
-                confirm = messagebox.askyesno(
-                    "Delete User",
-                    f"Are you sure you want to delete "
-                    f"{name} ({username})?"
-                )
-
-                if not confirm:
-                    return
-
-                delete_user_from_database(
-                    username
-                )
-
-                messagebox.showinfo(
-                    "User Deleted",
-                    f"User '{username}' was deleted."
-                )
-
-                self.show_admin_console()
+                confirm = messagebox.askyesno("Delete User", f"Are you sure you want to delete {name} ({username})?")
+                if confirm:
+                    delete_user_from_database(username)
+                    messagebox.showinfo("User Deleted", f"User '{username}' was deleted.")
+                    self.show_admin_console()
 
             ctk.CTkButton(
-                table,
-                text="🗑 Delete",
-                width=90,
-                fg_color="#c0392b",
-                hover_color="#922b21",
+                table, text="🗑 Delete", width=90, fg_color="#c0392b", hover_color="#922b21",
                 command=delete_selected_user
-            ).grid(
-                row=row_number,
-                column=3,
-                padx=20,
-                pady=8
-            )
+            ).grid(row=row_number, column=3, padx=20, pady=8)
 
     def create_sidebar(self):
-        ctk.CTkLabel(
-            self.sidebar,
-            text="🏥 ICU Decision\nSupport System",
-            font=("Arial", 20, "bold")
-        ).pack(pady=(15, 5))
-
-        ctk.CTkLabel(
-            self.sidebar,
-            text=f"{self.logged_user['name']}\n({self.logged_user['role']})",
-            font=("Arial", 12),
-            text_color="gray"
-        ).pack(pady=(0, 10))
+        ctk.CTkLabel(self.sidebar, text="🏥 ICU Decision\nSupport System", font=("Arial", 20, "bold")).pack(pady=(15, 5))
+        ctk.CTkLabel(self.sidebar, text=f"{self.logged_user['name']}\n({self.logged_user['role']})", font=("Arial", 12), text_color="gray").pack(pady=(0, 10))
 
         sections = [
-            (
-                "OVERVIEW & TRIAGE",
-                [
-                    ("Dashboard", "📊  Dashboard", self.show_dashboard),
-                    ("Priority Queue", "🚨  Priority Queue", self.show_priority_queue),
-                    ("Alerts Workflow", "🔔  Alerts Workflow", self.show_alerts),
-                ]
-            ),
-            (
-                "PATIENT MANAGEMENT",
-                [
-                    ("Add Patient", "➕  Add Patient", self.show_add_patient),
-                    ("Upload Patients CSV", "📁  Upload Patients CSV", self.upload_csv),
-                ]
-            ),
-            (
-                "PATIENT CLINICAL VIEW",
-                [
-                    ("Patient Summary", "📋  Patient Summary", self.show_patient_summary),
-                    ("Patient Details", "👤  Patient Details", self.show_patient_details),
-                    ("Recommended Actions", "🩺  Recommended Actions", self.show_recommended_actions),
-                    ("Risk Explanation", "💡  Risk Explanation", self.show_risk_explanation),
-                ]
-            ),
-            (
-                "ANALYTICS & TOOLS",
-                [
-                    ("What-if Analysis", "🧪  What-if Analysis", self.show_what_if),
-                    ("Trend Monitoring", "📈  Trend Monitoring", self.show_trends),
-                    ("Missing Data", "⚠️  Missing Data", self.show_missing_data),
-                ]
-            ),
+            ("OVERVIEW & TRIAGE", [
+                ("Dashboard", "📊  Dashboard", self.show_dashboard),
+                ("Priority Queue", "🚨  Priority Queue", self.show_priority_queue),
+                ("Alerts Workflow", "🔔  Alerts Workflow", self.show_alerts),
+            ]),
+            ("PATIENT MANAGEMENT", [
+                ("Add Patient", "➕  Add Patient", self.show_add_patient),
+                ("Upload Patients CSV", "📁  Upload Patients CSV", self.upload_csv),
+            ]),
+            ("PATIENT CLINICAL VIEW", [
+                ("Patient Summary", "📋  Patient Summary", self.show_patient_summary),
+                ("Patient Details", "👤  Patient Details", self.show_patient_details),
+                ("Recommended Actions", "🩺  Recommended Actions", self.show_recommended_actions),
+                ("Risk Explanation", "💡  Risk Explanation", self.show_risk_explanation),
+            ]),
+            ("ANALYTICS & TOOLS", [
+                ("What-if Analysis", "🧪  What-if Analysis", self.show_what_if),
+                ("Trend Monitoring", "📈  Trend Monitoring", self.show_trends),
+                ("Missing Data", "⚠️  Missing Data", self.show_missing_data),
+            ]),
         ]
 
         if self.logged_user.get("role") == "Admin":
-            sections.append(
-                (
-                    "ADMINISTRATION",
-                    [
-                        (
-                            "Admin Console",
-                            "⚙️  Admin Console",
-                            self.show_admin_console
-                        )
-                    ]
-                )
-            )
+            sections.append(("ADMINISTRATION", [("Admin Console", "⚙️  Admin Console", self.show_admin_console)]))
 
         self.sidebar_buttons = {}
 
         for section_title, buttons in sections:
-            ctk.CTkLabel(
-                self.sidebar,
-                text=section_title,
-                font=("Arial", 10, "bold"),
-                text_color="#7f8c8d",
-                anchor="w"
-            ).pack(fill="x", padx=16, pady=(8, 2))
+            ctk.CTkLabel(self.sidebar, text=section_title, font=("Arial", 10, "bold"), text_color="#7f8c8d", anchor="w").pack(fill="x", padx=16, pady=(8, 2))
 
             for key, text, command in buttons:
                 btn = ctk.CTkButton(
-                    self.sidebar,
-                    text=text,
-                    anchor="w",
-                    height=28,
-                    font=("Arial", 12),
+                    self.sidebar, text=text, anchor="w", height=28, font=("Arial", 12),
                     command=lambda k=key, cmd=command: self.on_button_click(k, cmd)
                 )
                 btn.pack(pady=2, fill="x", padx=12)
@@ -1120,63 +815,83 @@ class ICUApp(ctk.CTk):
 
         self.set_active_button("Dashboard")
 
-        ctk.CTkFrame(
-            self.sidebar,
-            height=2,
-            fg_color="#d0d0d0"
-        ).pack(
-            fill="x",
-            padx=15,
-            pady=(15, 8)
+        ctk.CTkFrame(self.sidebar, height=2, fg_color="#d0d0d0").pack(fill="x", padx=15, pady=(15, 5))
+
+        current_icon = "🌙  Dark Mode" if ctk.get_appearance_mode() == "Light" else "☀️  Light Mode"
+        self.theme_button = ctk.CTkButton(
+            self.sidebar, text=current_icon, anchor="w", height=30, font=("Arial", 12),
+            fg_color="#4a6572", hover_color="#34495e", command=self.toggle_appearance_mode
         )
+        self.theme_button.pack(fill="x", padx=12, pady=(3, 5))
 
         ctk.CTkButton(
-            self.sidebar,
-            text="🔄  Switch User",
-            anchor="w",
-            height=30,
-            font=("Arial", 12),
-            fg_color="#6c757d",
-            hover_color="#5a6268",
-            command=self.switch_user
-        ).pack(
-            fill="x",
-            padx=12,
-            pady=(3, 10)
-        )
+            self.sidebar, text="🔄  Switch User", anchor="w", height=30, font=("Arial", 12),
+            fg_color="#6c757d", hover_color="#5a6268", command=self.switch_user
+        ).pack(fill="x", padx=12, pady=(3, 10))
 
     def edit_patient_room(self, patient):
+        """עריכת מספר חדר - הגבלה קלינית: תחילית ICU- קבועה + ספרות בלבד"""
         user_role = getattr(self, "logged_user", {}).get("role", "")
         if user_role != "Doctor":
-            messagebox.showwarning("Permission Denied",
-                                   "Only Doctors are authorized to update patient room assignments.")
+            messagebox.showwarning("Permission Denied", "Only Doctors are authorized to update patient room assignments.")
             return
 
-        dialog = ctk.CTkInputDialog(
-            text=f"Enter new room assignment for Patient {patient.get('id')}:",
-            title="Assign / Edit Room"
-        )
-        new_room = dialog.get_input()
+        room_win = ctk.CTkToplevel(self)
+        room_win.title("Assign / Edit Room Number")
+        room_win.geometry("380x220")
+        room_win.resizable(False, False)
+        room_win.transient(self)
 
-        if new_room and new_room.strip():
-            updated_room = new_room.strip()
-            patient["room_number"] = updated_room
+        ctk.CTkLabel(room_win, text=f"Edit Room for Patient {patient.get('id')}", font=("Arial", 16, "bold")).pack(pady=(20, 10))
+
+        input_frame = ctk.CTkFrame(room_win, fg_color="transparent")
+        input_frame.pack(pady=10)
+
+        ctk.CTkLabel(input_frame, text="Room: ICU-", font=("Arial", 16, "bold")).pack(side="left")
+
+        current_room = str(patient.get("room_number", "")).replace("ICU-", "").strip()
+
+        room_entry = ctk.CTkEntry(input_frame, width=120, placeholder_text="e.g. 104")
+        room_entry.pack(side="left", padx=5)
+        if current_room:
+            room_entry.insert(0, current_room)
+
+        def save_room_number():
+            raw_digits = room_entry.get().strip()
+
+            if not raw_digits:
+                messagebox.showerror("Invalid Input", "Room number cannot be empty.")
+                return
+
+            if not raw_digits.isdigit():
+                messagebox.showerror("Invalid Input", "Room identifier must contain digits only (e.g. 104).")
+                return
+
+            room_int = int(raw_digits)
+            if room_int < 1 or room_int > 999:
+                messagebox.showerror("Invalid Input", "Room number must be between 1 and 999.")
+                return
+
+            full_room_name = f"ICU-{raw_digits}"
+            patient["room_number"] = full_room_name
             self.selected_patient = patient
 
             for p in patients:
                 if str(p.get("subject_id", p.get("id"))) == str(patient.get("subject_id", patient.get("id"))):
-                    p["room_number"] = updated_room
+                    p["room_number"] = full_room_name
                     break
 
             save_patient_to_database(patient)
 
             if hasattr(self, "room_label_var") and self.room_label_var:
-                self.room_label_var.configure(text=f"Room Assignment: {updated_room}")
+                self.room_label_var.configure(text=f"Room Assignment: {full_room_name}")
             else:
                 self.show_patient_summary()
 
-            messagebox.showinfo("Room Updated",
-                                f"Patient {patient.get('id')} room successfully set to {updated_room}.")
+            room_win.destroy()
+            messagebox.showinfo("Room Updated", f"Patient {patient.get('id')} room successfully assigned to {full_room_name}.")
+
+        ctk.CTkButton(room_win, text="Save Room", width=140, command=save_room_number).pack(pady=15)
 
     def edit_clinical_note(self, patient):
         user_role = getattr(self, "logged_user", {}).get("role", "")
@@ -1240,11 +955,7 @@ class ICUApp(ctk.CTk):
             widget.destroy()
 
     def show_title(self, text):
-        ctk.CTkLabel(
-            self.main,
-            text=text,
-            font=("Arial", 28, "bold")
-        ).pack(pady=20)
+        ctk.CTkLabel(self.main, text=text, font=("Arial", 28, "bold")).pack(pady=20)
 
     def select_patient(self, patient):
         self.selected_patient = patient
@@ -1278,10 +989,8 @@ class ICUApp(ctk.CTk):
 
         search_field_var = ctk.StringVar(value=self.dashboard_search_field)
         search_field_menu = ctk.CTkOptionMenu(
-            search_frame,
-            values=["Patient ID", "Hospital Admission ID", "ICU Stay ID"],
-            variable=search_field_var,
-            width=190
+            search_frame, values=["Patient ID", "Hospital Admission ID", "ICU Stay ID"],
+            variable=search_field_var, width=190
         )
         search_field_menu.pack(side="left", padx=5)
 
@@ -1447,14 +1156,58 @@ class ICUApp(ctk.CTk):
             patient_id = patient.get("subject_id", patient.get("id", "N/A"))
             room_num = patient.get("room_number", "Unassigned")
 
-            ctk.CTkLabel(card, text=f"{index}. Patient {patient_id} ({room_num}) — {level} risk — {score}/100", font=("Arial", 19, "bold"), text_color=get_risk_color(level)).pack(anchor="w", padx=20, pady=(10, 5))
+            # כותרת כרטיס המטופל
+            header_frame = ctk.CTkFrame(card, fg_color="transparent")
+            header_frame.pack(fill="x", padx=20, pady=(10, 2))
 
+            ctk.CTkLabel(
+                header_frame,
+                text=f"{index}. Patient {patient_id} ({room_num}) — {level} risk — {score}/100",
+                font=("Arial", 19, "bold"),
+                text_color=get_risk_color(level)
+            ).pack(side="left")
+
+            # אינדיקטור זמני בדיקה מחדש
+            reassess_text, reassess_color = get_reassessment_info(patient)
+            ctk.CTkLabel(
+                header_frame,
+                text=reassess_text,
+                font=("Arial", 13, "bold"),
+                text_color=reassess_color
+            ).pack(side="right")
+
+            # עדיפות טיפולית מוצעת
             actions = get_recommended_actions(level)
             if actions:
                 ctk.CTkLabel(card, text=f"Suggested priority: {actions[0]}", font=("Arial", 14)).pack(anchor="w", padx=20, pady=4)
 
-            ctk.CTkButton(card, text="Open Patient", width=120, command=lambda p=patient: self.select_patient(p)).pack(anchor="e", padx=20, pady=10)
+            # סרגל תגובה מהירה
+            bottom_bar = ctk.CTkFrame(card, fg_color="transparent")
+            bottom_bar.pack(fill="x", padx=20, pady=(4, 10))
 
+            last_review = patient.get("last_reviewed_at", "Never")
+            reviewer = patient.get("reviewed_by", "N/A")
+            ctk.CTkLabel(
+                bottom_bar,
+                text=f"⏱️ Last Reviewed: {last_review} ({reviewer})",
+                font=("Arial", 12),
+                text_color="gray"
+            ).pack(side="left")
+
+            action_buttons = ctk.CTkFrame(bottom_bar, fg_color="transparent")
+            action_buttons.pack(side="right")
+
+            ctk.CTkButton(
+                action_buttons, text="Mark Reviewed", width=110, height=26, font=("Arial", 11),
+                command=lambda p=patient: self.quick_review_patient(p, "Reviewed")
+            ).pack(side="left", padx=3)
+
+            ctk.CTkButton(
+                action_buttons, text="Open Patient", width=100, height=26, font=("Arial", 11, "bold"),
+                command=lambda p=patient: self.select_patient(p)
+            ).pack(side="left", padx=3)
+
+        # דפדפות עמודים
         pagination = ctk.CTkFrame(self.main, fg_color="transparent")
         pagination.pack(fill="x", padx=25, pady=20)
 
@@ -1479,6 +1232,16 @@ class ICUApp(ctk.CTk):
         next_button.pack(side="right")
         if self.priority_page >= total_pages - 1:
             next_button.configure(state="disabled")
+
+    def quick_review_patient(self, patient, status):
+        """עדכון מהיר של בדיקת מטופל מתוך ה-Priority Queue"""
+        patient["alert_status"] = status
+        patient["last_reviewed_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        patient["reviewed_by"] = getattr(self, "logged_user", {}).get("name", "Staff") if hasattr(self, "logged_user") else "Staff"
+
+        save_patient_to_database(patient)
+        messagebox.showinfo("Patient Reviewed", f"Patient {patient.get('id')} review recorded. Timer reset!")
+        self.show_priority_queue()
 
     def show_patient_summary(self):
         if not self.require_selected_patient():
@@ -1509,6 +1272,18 @@ class ICUApp(ctk.CTk):
             font=("Arial", 12),
             command=lambda: self.edit_patient_room(patient)
         ).pack(side="left", padx=15)
+
+        # כפתור ייצוא דוח רפואי בכרטיס המטופל
+        ctk.CTkButton(
+            card,
+            text="📥  Export Medical Report (.txt)",
+            width=220,
+            height=34,
+            font=("Arial", 13, "bold"),
+            fg_color="#27ae60",
+            hover_color="#1e8449",
+            command=lambda: self.export_patient_report(patient)
+        ).pack(anchor="e", padx=25, pady=(10, 15))
 
         # 2. סיכום מדדים
         summary = [
@@ -1551,7 +1326,89 @@ class ICUApp(ctk.CTk):
         for action in get_recommended_actions(level):
             ctk.CTkLabel(card, text=f"• {action}", font=("Arial", 15)).pack(anchor="w", padx=45, pady=3)
 
-    # Patient Details עם תמיכה מלאה בעריכת מדדים קליניים
+    def export_patient_report(self, patient):
+        """הפקת דוח רפואי רשמי של המטופל וייצוא לקובץ בנתיב מותאם מראש"""
+        if not patient:
+            return
+
+        patient_id = patient.get("subject_id", patient.get("id", "Unknown"))
+        room_num = patient.get("room_number", "Unassigned")
+        score, level = calculate_risk_score(patient)
+        result = patient.get("model_result", {})
+        doctor_note = patient.get("clinical_note", "") or "None provided"
+        generated_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        report_content = f"""================================================================================
+                    ICU CLINICAL DECISION SUPPORT SYSTEM
+                        PATIENT SUMMARY & RISK REPORT
+================================================================================
+Generated On: {generated_at}
+Generated By: {getattr(self, 'logged_user', {}).get('name', 'Staff')} ({getattr(self, 'logged_user', {}).get('role', 'User')})
+
+--------------------------------------------------------------------------------
+1. PATIENT DEMOGRAPHICS & LOCATION
+--------------------------------------------------------------------------------
+Patient ID / Subject ID: {patient_id}
+Hospital Admission ID:   {patient.get('hadm_id', 'N/A')}
+ICU Stay ID:             {patient.get('icustay_id', 'N/A')}
+Room Assignment:         {room_num}
+Age:                     {patient.get('age', 'N/A')}
+Gender:                  {patient.get('gender', 'N/A')}
+Admission Type:          {patient.get('admission_type', 'N/A')}
+Diagnosis:               {patient.get('diagnosis', 'N/A')}
+
+--------------------------------------------------------------------------------
+2. ML RISK ASSESSMENT & TRIAGE
+--------------------------------------------------------------------------------
+Risk Level:              {level}
+Risk Score:              {score} / 100
+Model Prediction:        {result.get('prediction', 'N/A')}
+Alert Status:            {patient.get('alert_status', 'New')}
+
+--------------------------------------------------------------------------------
+3. VITAL SIGNS & LAB VALUES SUMMARY
+--------------------------------------------------------------------------------
+Heart Rate (Min / Mean / Max):       {patient.get('heart_rate_min')} / {patient.get('heart_rate_mean')} / {patient.get('heart_rate_max')} bpm
+Systolic BP (Min / Mean / Max):      {patient.get('systolic_bp_min')} / {patient.get('systolic_bp_mean')} / {patient.get('systolic_bp_max')} mmHg
+Diastolic BP (Min / Mean / Max):     {patient.get('diastolic_bp_min')} / {patient.get('diastolic_bp_mean')} / {patient.get('diastolic_bp_max')} mmHg
+Creatinine Max:                      {patient.get('creatinine_max', 'Missing')}
+Lactate Max:                         {patient.get('lactate_max', 'Missing')}
+
+--------------------------------------------------------------------------------
+4. PHYSICIAN OVERRIDE & CLINICAL JUSTIFICATION
+--------------------------------------------------------------------------------
+Physician Note:
+{doctor_note}
+
+--------------------------------------------------------------------------------
+5. RECOMMENDED CLINICAL ACTIONS
+--------------------------------------------------------------------------------
+"""
+        for action in get_recommended_actions(level):
+            report_content += f"• {action}\n"
+
+        report_content += """
+================================================================================
+CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
+================================================================================
+"""
+
+        default_filename = f"Patient_{patient_id}_ICU_Report.txt"
+        file_path = filedialog.asksaveasfilename(
+            title="Select Path to Save Medical Report",
+            initialfile=default_filename,
+            defaultextension=".txt",
+            filetypes=[("Text Documents", "*.txt"), ("All Files", "*.*")]
+        )
+
+        if file_path:
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(report_content)
+                messagebox.showinfo("Report Exported", f"Medical report successfully saved to:\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Could not save report file:\n{e}")
+
     def show_patient_details(self):
         if not self.require_selected_patient():
             return
@@ -1559,13 +1416,9 @@ class ICUApp(ctk.CTk):
         patient = self.selected_patient
         self.show_title(f"Patient Details - {patient['id']}")
 
-        # ----------------------------------------------------
-        # סרגל ראשי מתפצל (שמאל: פרטים, ימין: כפתור + אייקון מגדר)
-        # ----------------------------------------------------
         main_layout_frame = ctk.CTkFrame(self.main, fg_color="transparent")
         main_layout_frame.pack(fill="x", padx=25, pady=10)
 
-        # אזור שמאל - טבלת הפרטים הקליניים
         details_frame = ctk.CTkFrame(main_layout_frame)
         details_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
 
@@ -1590,11 +1443,9 @@ class ICUApp(ctk.CTk):
         for key, value in details:
             ctk.CTkLabel(details_frame, text=f"{key}: {value}", font=("Arial", 16)).pack(anchor="w", padx=25, pady=5)
 
-        # אזור ימין - כפתור עריכה ותמונת מגדר מתחתיו
         action_frame = ctk.CTkFrame(main_layout_frame, fg_color="transparent")
         action_frame.pack(side="right", anchor="n", padx=10)
 
-        # כפתור עריכת מדדים
         ctk.CTkButton(
             action_frame,
             text="✏️ Edit Patient Vitals & Labs",
@@ -1604,11 +1455,9 @@ class ICUApp(ctk.CTk):
             command=lambda: self.edit_patient_vitals(patient)
         ).pack(pady=(0, 20))
 
-        # טעינת התמונה המותאמת לפי מגדר (M / F)
         gender = str(patient.get("gender", "M")).strip().upper()
         image_name = "female.png" if gender == "F" else "male.png"
 
-        # חיפוש התמונה בתיקיית Assets או בתיקיית הראשי
         possible_paths = [
             APP_DIR / image_name,
             APP_DIR / "assets" / image_name,
@@ -1624,19 +1473,14 @@ class ICUApp(ctk.CTk):
         if image_path:
             try:
                 pil_img = Image.open(image_path)
-                gender_ctk_image = ctk.CTkImage(
-                    light_image=pil_img,
-                    dark_image=pil_img,
-                    size=(140, 160)
-                )
-
+                gender_ctk_image = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(140, 160))
                 img_label = ctk.CTkLabel(action_frame, image=gender_ctk_image, text="")
                 img_label.pack(pady=10)
             except Exception as e:
                 print(f"Could not load gender image: {e}")
 
     def edit_patient_vitals(self, patient):
-        """חלון עריכת מדדים פיזיולוגיים ומעבדה + חישוב סיכון מחדש"""
+        """חלון עריכת מדדים פיזיולוגיים ומעבדה עם תיקוף קליני קשיח למניעת טעויות הקלדה"""
         user_role = getattr(self, "logged_user", {}).get("role", "")
         if user_role != "Doctor":
             messagebox.showwarning("Permission Denied", "Only Doctors are authorized to edit patient vital measurements.")
@@ -1682,14 +1526,63 @@ class ICUApp(ctk.CTk):
 
         def save_vitals():
             try:
-                for key, _, _ in fields_to_edit:
-                    raw_val = entries[key].get().strip()
-                    if raw_val == "" or raw_val.lower() == "none" or raw_val.lower() == "nan":
-                        patient[key] = None
-                    else:
-                        patient[key] = float(raw_val)
+                parsed_values = {}
 
-                # איפוס מטמון לחישוב מחדש של המודל
+                for key, label_text, _ in fields_to_edit:
+                    raw_val = entries[key].get().strip()
+
+                    if key in ["lactate_max", "creatinine_max"]:
+                        if raw_val == "" or raw_val.lower() in ["none", "nan"]:
+                            parsed_values[key] = None
+                            continue
+
+                    if not raw_val:
+                        raise ValueError(f"'{label_text}' is required.")
+
+                    try:
+                        v = float(raw_val)
+                        parsed_values[key] = v
+                    except ValueError:
+                        raise ValueError(f"'{label_text}' must be a valid numeric value.")
+
+                age = parsed_values["age"]
+                if age < 0 or age > 120:
+                    raise ValueError("Age must be between 0 and 120.")
+
+                positive_vitals = [
+                    ("heart_rate_mean", "Heart Rate Mean"),
+                    ("heart_rate_min", "Heart Rate Min"),
+                    ("heart_rate_max", "Heart Rate Max"),
+                    ("systolic_bp_mean", "Systolic BP Mean"),
+                    ("systolic_bp_min", "Systolic BP Min"),
+                    ("systolic_bp_max", "Systolic BP Max"),
+                    ("diastolic_bp_mean", "Diastolic BP Mean"),
+                    ("diastolic_bp_min", "Diastolic BP Min"),
+                    ("diastolic_bp_max", "Diastolic BP Max"),
+                ]
+
+                for key, label in positive_vitals:
+                    if parsed_values[key] <= 0:
+                        raise ValueError(f"'{label}' must be greater than 0.")
+
+                if parsed_values["lactate_max"] is not None and parsed_values["lactate_max"] < 0:
+                    raise ValueError("Lactate Max cannot be negative.")
+
+                if parsed_values["creatinine_max"] is not None and parsed_values["creatinine_max"] < 0:
+                    raise ValueError("Creatinine Max cannot be negative.")
+
+                if not (parsed_values["heart_rate_min"] <= parsed_values["heart_rate_mean"] <= parsed_values["heart_rate_max"]):
+                    raise ValueError("Heart Rate values must satisfy: Min ≤ Mean ≤ Max.")
+
+                if not (parsed_values["systolic_bp_min"] <= parsed_values["systolic_bp_mean"] <= parsed_values["systolic_bp_max"]):
+                    raise ValueError("Systolic BP values must satisfy: Min ≤ Mean ≤ Max.")
+
+                if not (parsed_values["diastolic_bp_min"] <= parsed_values["diastolic_bp_mean"] <= parsed_values["diastolic_bp_max"]):
+                    raise ValueError("Diastolic BP values must satisfy: Min ≤ Mean ≤ Max.")
+
+                for key, val in parsed_values.items():
+                    patient[key] = val
+
                 patient.pop("_risk_score", None)
                 patient.pop("_risk_level", None)
                 patient.pop("model_result", None)
@@ -1715,8 +1608,8 @@ class ICUApp(ctk.CTk):
                     f"New Risk Score: {int(patient.get('_risk_score', 0) * 100)}/100"
                 )
 
-            except ValueError:
-                messagebox.showerror("Invalid Input", "Please enter valid numeric values for vitals.")
+            except ValueError as e:
+                messagebox.showerror("Invalid Input", str(e))
             except Exception as e:
                 messagebox.showerror("Error", f"Could not update vitals:\n{e}")
 
@@ -1892,19 +1785,8 @@ class ICUApp(ctk.CTk):
             review_info_frame = ctk.CTkFrame(card, fg_color="transparent")
             review_info_frame.pack(fill="x", padx=20, pady=(2, 5))
 
-            ctk.CTkLabel(
-                review_info_frame,
-                text=f"⏱️ Last Review: {last_review} (by {reviewer})",
-                font=("Arial", 13),
-                text_color="gray"
-            ).pack(side="left", padx=5)
-
-            ctk.CTkLabel(
-                review_info_frame,
-                text=reassess_text,
-                font=("Arial", 13, "bold"),
-                text_color=reassess_color
-            ).pack(side="right", padx=5)
+            ctk.CTkLabel(review_info_frame, text=f"⏱️ Last Review: {last_review} (by {reviewer})", font=("Arial", 13), text_color="gray").pack(side="left", padx=5)
+            ctk.CTkLabel(review_info_frame, text=reassess_text, font=("Arial", 13, "bold"), text_color=reassess_color).pack(side="right", padx=5)
 
             button_frame = ctk.CTkFrame(card, fg_color="transparent")
             button_frame.pack(anchor="e", padx=15, pady=10)
@@ -1945,12 +1827,7 @@ class ICUApp(ctk.CTk):
         patient["reviewed_by"] = getattr(self, "logged_user", {}).get("name", "Staff") if hasattr(self, "logged_user") else "Staff"
 
         save_patient_to_database(patient)
-
-        messagebox.showinfo(
-            "Alert Updated",
-            f"Patient {patient.get('id', 'N/A')} alert marked as {status}."
-        )
-
+        messagebox.showinfo("Alert Updated", f"Patient {patient.get('id', 'N/A')} alert marked as {status}.")
         self.show_alerts()
 
     def show_what_if(self):
@@ -2067,384 +1944,130 @@ class ICUApp(ctk.CTk):
                 entry.insert(0, default)
             entries[key] = entry
 
-        options_frame = ctk.CTkFrame(
-            self.main,
-            fg_color="transparent"
-        )
+        options_frame = ctk.CTkFrame(self.main, fg_color="transparent")
         options_frame.pack(pady=10)
 
-        # Gender
-        ctk.CTkLabel(
-            options_frame,
-            text="Gender",
-            width=150,
-            anchor="w"
-        ).grid(row=0, column=0, padx=10, pady=8)
-
+        ctk.CTkLabel(options_frame, text="Gender", width=150, anchor="w").grid(row=0, column=0, padx=10, pady=8)
         gender_var = ctk.StringVar(value="Female")
-
-        gender_menu = ctk.CTkOptionMenu(
-            options_frame,
-            values=["Female", "Male"],
-            variable=gender_var,
-            width=180
-        )
+        gender_menu = ctk.CTkOptionMenu(options_frame, values=["Female", "Male"], variable=gender_var, width=180)
         gender_menu.grid(row=0, column=1, padx=10, pady=8)
 
-        # Admission Time
-        ctk.CTkLabel(
-            options_frame,
-            text="Admission Time",
-            width=150,
-            anchor="w"
-        ).grid(
-            row=1,
-            column=0,
-            padx=10,
-            pady=8
-        )
-
-        time_frame = ctk.CTkFrame(
-            options_frame,
-            fg_color="transparent"
-        )
-        time_frame.grid(
-            row=1,
-            column=1,
-            padx=10,
-            pady=8
-        )
+        ctk.CTkLabel(options_frame, text="Admission Time", width=150, anchor="w").grid(row=1, column=0, padx=10, pady=8)
+        time_frame = ctk.CTkFrame(options_frame, fg_color="transparent")
+        time_frame.grid(row=1, column=1, padx=10, pady=8)
 
         admit_hour_var = ctk.StringVar(value="12")
         admit_minute_var = ctk.StringVar(value="00")
 
-        hour_menu = ctk.CTkOptionMenu(
-            time_frame,
-            values=[f"{i:02d}" for i in range(24)],
-            variable=admit_hour_var,
-            width=80
-        )
+        hour_menu = ctk.CTkOptionMenu(time_frame, values=[f"{i:02d}" for i in range(24)], variable=admit_hour_var, width=80)
         hour_menu.pack(side="left")
 
-        ctk.CTkLabel(
-            time_frame,
-            text=":",
-            font=("Arial", 18, "bold")
-        ).pack(
-            side="left",
-            padx=5
-        )
+        ctk.CTkLabel(time_frame, text=":", font=("Arial", 18, "bold")).pack(side="left", padx=5)
 
-        minute_menu = ctk.CTkOptionMenu(
-            time_frame,
-            values=[
-                "00",
-                "15",
-                "30",
-                "45"
-            ],
-            variable=admit_minute_var,
-            width=80
-        )
+        minute_menu = ctk.CTkOptionMenu(time_frame, values=["00", "15", "30", "45"], variable=admit_minute_var, width=80)
         minute_menu.pack(side="left")
 
-        # Admission Day
-        ctk.CTkLabel(
-            options_frame,
-            text="Admission Day",
-            width=150,
-            anchor="w"
-        ).grid(row=2, column=0, padx=10, pady=8)
-
+        ctk.CTkLabel(options_frame, text="Admission Day", width=150, anchor="w").grid(row=2, column=0, padx=10, pady=8)
         admit_day_var = ctk.StringVar(value="Monday")
 
         day_menu = ctk.CTkOptionMenu(
             options_frame,
-            values=[
-                "Monday",
-                "Tuesday",
-                "Wednesday",
-                "Thursday",
-                "Friday",
-                "Saturday",
-                "Sunday"
-            ],
-            variable=admit_day_var,
-            width=180
+            values=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            variable=admit_day_var, width=180
         )
         day_menu.grid(row=2, column=1, padx=10, pady=8)
 
         def save_patient():
             try:
-
-                # ============================================
-                # Required IDs
-                # ============================================
-
                 subject_id = entries["subject_id"].get().strip()
                 hadm_id = entries["hadm_id"].get().strip()
                 icustay_id = entries["icustay_id"].get().strip()
 
-                if not subject_id:
-                    raise ValueError("Subject ID is required.")
-
-                if not hadm_id:
-                    raise ValueError("Hospital Admission ID is required.")
-
-                if not icustay_id:
-                    raise ValueError("ICU Stay ID is required.")
-
-                # ============================================
-                # Prevent duplicate ICU stay
-                # ============================================
+                if not subject_id or not hadm_id or not icustay_id:
+                    raise ValueError("Subject ID, Admission ID, and ICU Stay ID are required.")
 
                 for existing_patient in patients:
-                    if str(
-                            existing_patient.get("icustay_id", "")
-                    ) == icustay_id:
-                        raise ValueError(
-                            f"ICU Stay ID {icustay_id} already exists."
-                        )
-
-                # ============================================
-                # Required numeric fields
-                # ============================================
+                    if str(existing_patient.get("icustay_id", "")) == icustay_id:
+                        raise ValueError(f"ICU Stay ID {icustay_id} already exists.")
 
                 required_numeric = [
-                    "age",
-
-                    "heart_rate_mean",
-                    "heart_rate_min",
-                    "heart_rate_max",
-
-                    "systolic_bp_mean",
-                    "systolic_bp_min",
-                    "systolic_bp_max",
-
-                    "diastolic_bp_mean",
-                    "diastolic_bp_min",
-                    "diastolic_bp_max"
+                    "age", "heart_rate_mean", "heart_rate_min", "heart_rate_max",
+                    "systolic_bp_mean", "systolic_bp_min", "systolic_bp_max",
+                    "diastolic_bp_mean", "diastolic_bp_min", "diastolic_bp_max"
                 ]
 
                 values = {}
-
                 for field in required_numeric:
-
                     raw_value = entries[field].get().strip()
-
                     if not raw_value:
-                        raise ValueError(
-                            f"{field.replace('_', ' ').title()} is required."
-                        )
-
+                        raise ValueError(f"{field.replace('_', ' ').title()} is required.")
                     try:
                         values[field] = float(raw_value)
-
                     except ValueError:
-                        raise ValueError(
-                            f"{field.replace('_', ' ').title()} "
-                            f"must be a numeric value."
-                        )
+                        raise ValueError(f"{field.replace('_', ' ').title()} must be numeric.")
 
-                # ============================================
-                # Age validation
-                # ============================================
-
-                age = values["age"]
-
-                if age < 0 or age > 120:
-                    raise ValueError(
-                        "Age must be between 0 and 120."
-                    )
-
-                # ============================================
-                # Physiological values must be positive
-                # ============================================
+                if values["age"] < 0 or values["age"] > 120:
+                    raise ValueError("Age must be between 0 and 120.")
 
                 vital_fields = [
-                    "heart_rate_mean",
-                    "heart_rate_min",
-                    "heart_rate_max",
-
-                    "systolic_bp_mean",
-                    "systolic_bp_min",
-                    "systolic_bp_max",
-
-                    "diastolic_bp_mean",
-                    "diastolic_bp_min",
-                    "diastolic_bp_max"
+                    "heart_rate_mean", "heart_rate_min", "heart_rate_max",
+                    "systolic_bp_mean", "systolic_bp_min", "systolic_bp_max",
+                    "diastolic_bp_mean", "diastolic_bp_min", "diastolic_bp_max"
                 ]
 
                 for field in vital_fields:
                     if values[field] <= 0:
-                        raise ValueError(
-                            f"{field.replace('_', ' ').title()} "
-                            f"must be greater than 0."
-                        )
+                        raise ValueError(f"{field.replace('_', ' ').title()} must be greater than 0.")
 
-                # ============================================
-                # Min / Mean / Max validation
-                # ============================================
+                if not (values["heart_rate_min"] <= values["heart_rate_mean"] <= values["heart_rate_max"]):
+                    raise ValueError("Heart Rate must satisfy: Min ≤ Mean ≤ Max.")
 
-                if not (
-                        values["heart_rate_min"]
-                        <= values["heart_rate_mean"]
-                        <= values["heart_rate_max"]
-                ):
-                    raise ValueError(
-                        "Heart Rate must satisfy: "
-                        "Min ≤ Mean ≤ Max."
-                    )
+                if not (values["systolic_bp_min"] <= values["systolic_bp_mean"] <= values["systolic_bp_max"]):
+                    raise ValueError("Systolic BP must satisfy: Min ≤ Mean ≤ Max.")
 
-                if not (
-                        values["systolic_bp_min"]
-                        <= values["systolic_bp_mean"]
-                        <= values["systolic_bp_max"]
-                ):
-                    raise ValueError(
-                        "Systolic BP must satisfy: "
-                        "Min ≤ Mean ≤ Max."
-                    )
+                if not (values["diastolic_bp_min"] <= values["diastolic_bp_mean"] <= values["diastolic_bp_max"]):
+                    raise ValueError("Diastolic BP must satisfy: Min ≤ Mean ≤ Max.")
 
-                if not (
-                        values["diastolic_bp_min"]
-                        <= values["diastolic_bp_mean"]
-                        <= values["diastolic_bp_max"]
-                ):
-                    raise ValueError(
-                        "Diastolic BP must satisfy: "
-                        "Min ≤ Mean ≤ Max."
-                    )
-
-                # ============================================
-                # Optional lab values
-                # ============================================
-
-                creatinine = self.optional_float(
-                    entries["creatinine_max"].get()
-                )
-
-                lactate = self.optional_float(
-                    entries["lactate_max"].get()
-                )
+                creatinine = self.optional_float(entries["creatinine_max"].get())
+                lactate = self.optional_float(entries["lactate_max"].get())
 
                 if creatinine is not None and creatinine < 0:
-                    raise ValueError(
-                        "Creatinine cannot be negative."
-                    )
-
+                    raise ValueError("Creatinine cannot be negative.")
                 if lactate is not None and lactate < 0:
-                    raise ValueError(
-                        "Lactate cannot be negative."
-                    )
+                    raise ValueError("Lactate cannot be negative.")
 
-                # ============================================
-                # Dropdown values
-                # ============================================
-
-                gender = (
-                    "F"
-                    if gender_var.get() == "Female"
-                    else "M"
-                )
-
-                admit_hour = int(
-                    admit_hour_var.get()
-                )
-
-                day_mapping = {
-                    "Monday": 0,
-                    "Tuesday": 1,
-                    "Wednesday": 2,
-                    "Thursday": 3,
-                    "Friday": 4,
-                    "Saturday": 5,
-                    "Sunday": 6
-                }
-
-                admit_day = day_mapping[
-                    admit_day_var.get()
-                ]
-
-                # ============================================
-                # Create patient
-                # ============================================
+                gender = "F" if gender_var.get() == "Female" else "M"
+                admit_hour = int(admit_hour_var.get())
+                day_mapping = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
+                admit_day = day_mapping[admit_day_var.get()]
 
                 patient = {
-                    "id": subject_id,
-                    "subject_id": subject_id,
-                    "hadm_id": hadm_id,
-                    "icustay_id": icustay_id,
-
-                    "age": age,
-                    "gender": gender,
-
-                    "heart_rate_mean":
-                        values["heart_rate_mean"],
-                    "heart_rate_min":
-                        values["heart_rate_min"],
-                    "heart_rate_max":
-                        values["heart_rate_max"],
-
-                    "systolic_bp_mean":
-                        values["systolic_bp_mean"],
-                    "systolic_bp_min":
-                        values["systolic_bp_min"],
-                    "systolic_bp_max":
-                        values["systolic_bp_max"],
-
-                    "diastolic_bp_mean":
-                        values["diastolic_bp_mean"],
-                    "diastolic_bp_min":
-                        values["diastolic_bp_min"],
-                    "diastolic_bp_max":
-                        values["diastolic_bp_max"],
-
-                    "creatinine_max": creatinine,
-                    "lactate_max": lactate,
-
-                    "admit_hour": admit_hour,
-                    "admit_dayofweek": admit_day,
-
-                    "icu_hours": 0,
-                    "admission_type": "Manual Entry",
-                    "diagnosis": "Not provided",
-                    "alert_status": "New",
-                    "clinical_note": "",
-
-                    "room_number":
-                        f"ICU-{(len(patients) % 15) + 101}"
+                    "id": subject_id, "subject_id": subject_id, "hadm_id": hadm_id, "icustay_id": icustay_id,
+                    "age": values["age"], "gender": gender,
+                    "heart_rate_mean": values["heart_rate_mean"], "heart_rate_min": values["heart_rate_min"], "heart_rate_max": values["heart_rate_max"],
+                    "systolic_bp_mean": values["systolic_bp_mean"], "systolic_bp_min": values["systolic_bp_min"], "systolic_bp_max": values["systolic_bp_max"],
+                    "diastolic_bp_mean": values["diastolic_bp_mean"], "diastolic_bp_min": values["diastolic_bp_min"], "diastolic_bp_max": values["diastolic_bp_max"],
+                    "creatinine_max": creatinine, "lactate_max": lactate,
+                    "admit_hour": admit_hour, "admit_dayofweek": admit_day,
+                    "icu_hours": 0, "admission_type": "Manual Entry", "diagnosis": "Not provided",
+                    "alert_status": "New", "clinical_note": "", "room_number": f"ICU-{(len(patients) % 15) + 101}"
                 }
 
                 result = call_model(patient)
-
                 patients.append(patient)
-
                 save_patient_to_database(patient)
-
                 self.selected_patient = patient
 
                 messagebox.showinfo(
                     "Patient Added",
-                    f"Patient {patient['id']} was added successfully.\n\n"
-                    f"Risk level: {result['risk_level']}\n"
-                    f"Risk: {result['risk_percent']}"
+                    f"Patient {patient['id']} was added successfully.\n\nRisk level: {result['risk_level']}\nRisk: {result['risk_percent']}"
                 )
-
                 self.show_patient_summary()
 
-
             except ValueError as e:
-                messagebox.showerror(
-                    "Invalid Input",
-                    str(e)
-                )
-
+                messagebox.showerror("Invalid Input", str(e))
             except Exception as e:
-                messagebox.showerror(
-                    "Error",
-                    f"Could not add patient:\n{e}"
-                )
+                messagebox.showerror("Error", f"Could not add patient:\n{e}")
 
         ctk.CTkButton(self.main, text="Add Patient & Calculate Risk", width=280, height=45, command=save_patient).pack(pady=25)
 
@@ -2492,9 +2115,7 @@ class ICUApp(ctk.CTk):
             elapsed = time.time() - start_time
             remaining = (elapsed / processed) * (total - processed) if processed > 0 else 0
 
-            minutes = int(remaining // 60)
-            seconds = int(remaining % 60)
-
+            minutes, seconds = int(remaining // 60), int(remaining % 60)
             progress_bar.set(fraction)
             percent_label.configure(text=f"{percentage:.1f}%")
             status_label.configure(text=f"Processing patient {processed:,} of {total:,}")
@@ -2521,9 +2142,7 @@ class ICUApp(ctk.CTk):
 
                 total = len(df)
                 start_time = time.time()
-                all_new_patients = []
-                skipped = 0
-                BATCH_SIZE = 500
+                all_new_patients, skipped, BATCH_SIZE = [], 0, 500
 
                 for batch_start in range(0, total, BATCH_SIZE):
                     batch_end = min(batch_start + BATCH_SIZE, total)
@@ -2539,31 +2158,15 @@ class ICUApp(ctk.CTk):
                                 admit_hour, admit_day, intime_text = int(intime.hour), int(intime.dayofweek), str(intime)
 
                             patient = {
-                                "id": str(row["SUBJECT_ID"]),
-                                "subject_id": str(row["SUBJECT_ID"]),
-                                "hadm_id": str(row["HADM_ID"]),
-                                "icustay_id": str(row["ICUSTAY_ID"]),
-                                "intime": intime_text,
-                                "age": float(row["AGE"]),
-                                "gender": str(row["GENDER"]).strip().upper(),
-                                "heart_rate_mean": float(row["HeartRate_mean"]),
-                                "heart_rate_min": float(row["HeartRate_min"]),
-                                "heart_rate_max": float(row["HeartRate_max"]),
-                                "systolic_bp_mean": float(row["SysBP_mean"]),
-                                "systolic_bp_min": float(row["SysBP_min"]),
-                                "systolic_bp_max": float(row["SysBP_max"]),
-                                "diastolic_bp_mean": float(row["DiasBP_mean"]),
-                                "diastolic_bp_min": float(row["DiasBP_min"]),
-                                "diastolic_bp_max": float(row["DiasBP_max"]),
+                                "id": str(row["SUBJECT_ID"]), "subject_id": str(row["SUBJECT_ID"]), "hadm_id": str(row["HADM_ID"]), "icustay_id": str(row["ICUSTAY_ID"]),
+                                "intime": intime_text, "age": float(row["AGE"]), "gender": str(row["GENDER"]).strip().upper(),
+                                "heart_rate_mean": float(row["HeartRate_mean"]), "heart_rate_min": float(row["HeartRate_min"]), "heart_rate_max": float(row["HeartRate_max"]),
+                                "systolic_bp_mean": float(row["SysBP_mean"]), "systolic_bp_min": float(row["SysBP_min"]), "systolic_bp_max": float(row["SysBP_max"]),
+                                "diastolic_bp_mean": float(row["DiasBP_mean"]), "diastolic_bp_min": float(row["DiasBP_min"]), "diastolic_bp_max": float(row["DiasBP_max"]),
                                 "creatinine_max": None if pd.isna(row.get("Creatinine_max")) else float(row["Creatinine_max"]),
                                 "lactate_max": None if pd.isna(row.get("Lactate_max")) else float(row["Lactate_max"]),
-                                "admit_hour": admit_hour,
-                                "admit_dayofweek": admit_day,
-                                "icu_hours": "N/A",
-                                "admission_type": "CSV Import",
-                                "diagnosis": "Not provided",
-                                "alert_status": "New",
-                                "clinical_note": "",
+                                "admit_hour": admit_hour, "admit_dayofweek": admit_day, "icu_hours": "N/A",
+                                "admission_type": "CSV Import", "diagnosis": "Not provided", "alert_status": "New", "clinical_note": "",
                                 "room_number": f"ICU-{(idx % 15) + 101}"
                             }
 
@@ -2572,7 +2175,7 @@ class ICUApp(ctk.CTk):
                                 patient["hospital_expire_flag"] = None if pd.isna(val) else int(val)
 
                             batch_patients.append(patient)
-                        except Exception as e:
+                        except Exception:
                             skipped += 1
 
                     if batch_patients:
@@ -2637,56 +2240,33 @@ class ICUApp(ctk.CTk):
 
 
 if __name__ == "__main__":
-
     initialize_application_data()
 
     while True:
-
-        # ==============================================
-        # LOGIN
-        # ==============================================
-
         login = LoginWindow()
         login.mainloop()
 
-        logged_user = getattr(
-            login,
-            "logged_user",
-            None
-        )
+        logged_user = getattr(login, "logged_user", None)
 
         try:
             login.destroy()
         except Exception:
             pass
 
-        # Login window was closed without logging in
         if logged_user is None:
             break
-
-        # ==============================================
-        # MAIN APPLICATION
-        # ==============================================
 
         app = ICUApp(logged_user)
         app.mainloop()
 
-        switch_requested = getattr(
-            app,
-            "switch_user_requested",
-            False
-        )
+        switch_requested = getattr(app, "switch_user_requested", False)
 
         try:
             app.destroy()
         except Exception:
             pass
 
-        # If Switch User was clicked,
-        # restart loop and show LoginWindow again.
         if switch_requested:
             continue
 
-        # Normal application close
         break
-
