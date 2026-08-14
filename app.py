@@ -497,61 +497,143 @@ class LoginWindow(ctk.CTk):
         super().__init__()
 
         self.title("ICU Clinical Decision Support System - Login")
-        self.geometry("500x520")
+        self.geometry("520x620")
         self.resizable(False, False)
         self.logged_user = None
 
-        container = ctk.CTkFrame(self, width=400, height=400)
-        container.pack(expand=True, padx=40, pady=40)
+        container = ctk.CTkFrame(self, width=440, height=540)
+        container.pack(expand=True, padx=30, pady=25)
 
         ctk.CTkLabel(
             container,
-            text="ICU Clinical Decision\nSupport System",
-            font=("Arial", 27, "bold")
-        ).pack(pady=(35, 10))
+            text="🏥 ICU Decision Support",
+            font=("Arial", 24, "bold")
+        ).pack(pady=(20, 5))
 
         ctk.CTkLabel(
             container,
             text="Healthcare Professional Login",
-            font=("Arial", 17)
-        ).pack(pady=(0, 30))
+            font=("Arial", 15),
+            text_color="gray"
+        ).pack(pady=(0, 20))
 
         self.username_entry = ctk.CTkEntry(
             container,
-            width=300,
-            height=42,
+            width=320,
+            height=40,
             placeholder_text="Username"
         )
-        self.username_entry.pack(pady=10)
+        self.username_entry.pack(pady=8)
+
+        password_frame = ctk.CTkFrame(container, fg_color="transparent")
+        password_frame.pack(pady=8)
 
         self.password_entry = ctk.CTkEntry(
-            container,
-            width=300,
-            height=42,
+            password_frame,
+            width=275,
+            height=40,
             placeholder_text="Password",
             show="*"
         )
-        self.password_entry.pack(pady=10)
+        self.password_entry.pack(side="left", padx=(0, 5))
+
+        self.show_password_var = False
+        self.toggle_pwd_btn = ctk.CTkButton(
+            password_frame,
+            text="👁️",
+            width=40,
+            height=40,
+            font=("Arial", 14),
+            fg_color="#7f8c8d",
+            hover_color="#95a5a6",
+            command=self.toggle_password_visibility
+        )
+        self.toggle_pwd_btn.pack(side="left")
 
         ctk.CTkButton(
             container,
             text="Login",
-            width=300,
-            height=42,
+            width=320,
+            height=40,
+            font=("Arial", 14, "bold"),
             command=self.login
-        ).pack(pady=25)
+        ).pack(pady=15)
 
         self.status_label = ctk.CTkLabel(
             container,
             text="",
-            text_color="red"
+            text_color="red",
+            font=("Arial", 12)
         )
-        self.status_label.pack()
+        self.status_label.pack(pady=(0, 10))
 
         self.password_entry.bind(
             "<Return>",
             lambda event: self.login()
         )
+
+        demo_frame = ctk.CTkFrame(container, fg_color="#eef2f7", corner_radius=8)
+        demo_frame.pack(fill="x", padx=20, pady=(5, 15))
+
+        ctk.CTkLabel(
+            demo_frame,
+            text="🛠️ Demo Quick Fill (Presentation Mode Only)",
+            font=("Arial", 11, "bold"),
+            text_color="#576574"
+        ).pack(pady=(8, 4))
+
+        quick_buttons_frame = ctk.CTkFrame(demo_frame, fg_color="transparent")
+        quick_buttons_frame.pack(pady=(0, 8))
+
+        ctk.CTkButton(
+            quick_buttons_frame,
+            text="🩺 Doctor",
+            width=85,
+            height=28,
+            font=("Arial", 11),
+            fg_color="#34495e",
+            hover_color="#2c3e50",
+            command=lambda: self.fill_credentials("doctor1", "doctor123")
+        ).pack(side="left", padx=4)
+
+        ctk.CTkButton(
+            quick_buttons_frame,
+            text="💉 Nurse",
+            width=85,
+            height=28,
+            font=("Arial", 11),
+            fg_color="#34495e",
+            hover_color="#2c3e50",
+            command=lambda: self.fill_credentials("nurse1", "nurse123")
+        ).pack(side="left", padx=4)
+
+        ctk.CTkButton(
+            quick_buttons_frame,
+            text="⚙️ Admin",
+            width=85,
+            height=28,
+            font=("Arial", 11),
+            fg_color="#34495e",
+            hover_color="#2c3e50",
+            command=lambda: self.fill_credentials("admin1", "admin123")
+        ).pack(side="left", padx=4)
+
+    def toggle_password_visibility(self):
+        if self.show_password_var:
+            self.password_entry.configure(show="*")
+            self.toggle_pwd_btn.configure(text="👁️", fg_color="#7f8c8d")
+            self.show_password_var = False
+        else:
+            self.password_entry.configure(show="")
+            self.toggle_pwd_btn.configure(text="🙈", fg_color="#2980b9")
+            self.show_password_var = True
+
+    def fill_credentials(self, username, password):
+        self.username_entry.delete(0, "end")
+        self.username_entry.insert(0, username)
+        self.password_entry.delete(0, "end")
+        self.password_entry.insert(0, password)
+        self.status_label.configure(text="")
 
     def login(self):
         username = self.username_entry.get().strip()
@@ -672,7 +754,6 @@ class ICUApp(ctk.CTk):
         self.quit()
 
     def toggle_appearance_mode(self):
-        """מעבר מהיר בין מצב כהה (Dark Mode) למצב בהיר (Light Mode)"""
         current_mode = ctk.get_appearance_mode()
         if current_mode == "Light":
             ctk.set_appearance_mode("Dark")
@@ -680,6 +761,48 @@ class ICUApp(ctk.CTk):
         else:
             ctk.set_appearance_mode("Light")
             self.theme_button.configure(text="🌙  Dark Mode")
+
+    def check_overdue_critical_patients(self):
+        overdue_critical_patients = []
+        for p in patients:
+            if get_missing_model_fields(p):
+                continue
+            _, level = calculate_risk_score(p)
+            if level == "CRITICAL":
+                info_text, _ = get_reassessment_info(p)
+                if "Due for re-assessment" in info_text or "Pending initial review" in info_text:
+                    overdue_critical_patients.append(p)
+
+        if overdue_critical_patients:
+            banner = ctk.CTkFrame(self.main, fg_color="#c0392b", corner_radius=8)
+            banner.pack(fill="x", padx=25, pady=(0, 15))
+
+            count = len(overdue_critical_patients)
+            msg = f"🚨 URGENT CLINICAL ATTENTION: {count} CRITICAL patient{'s require' if count > 1 else ' requires'} immediate vital re-assessment!"
+
+            ctk.CTkLabel(
+                banner,
+                text=msg,
+                font=("Arial", 14, "bold"),
+                text_color="white"
+            ).pack(side="left", padx=20, pady=10)
+
+            def go_to_priority_critical():
+                self.priority_filter = "CRITICAL"
+                self.priority_page = 0
+                self.set_active_button("Priority Queue")
+                self.show_priority_queue()
+
+            ctk.CTkButton(
+                banner,
+                text="View in Priority Queue ➔",
+                font=("Arial", 12, "bold"),
+                fg_color="white",
+                text_color="#c0392b",
+                hover_color="#f2f2f2",
+                height=30,
+                command=go_to_priority_critical
+            ).pack(side="right", padx=15, pady=8)
 
     def show_admin_console(self):
         if self.logged_user.get("role") != "Admin":
@@ -706,7 +829,7 @@ class ICUApp(ctk.CTk):
         name_entry = ctk.CTkEntry(form, width=220, placeholder_text="Full Name")
         name_entry.grid(row=0, column=1, padx=8, pady=8)
 
-        password_entry = ctk.CTkEntry(form, width=200, placeholder_text="Password", show="*")
+        password_entry = ctk.CTkEntry(form, width=200, placeholder_text="Password", show="*" )
         password_entry.grid(row=0, column=2, padx=8, pady=8)
 
         role_var = ctk.StringVar(value="Nurse")
@@ -771,43 +894,83 @@ class ICUApp(ctk.CTk):
             ).grid(row=row_number, column=3, padx=20, pady=8)
 
     def create_sidebar(self):
-        ctk.CTkLabel(self.sidebar, text="🏥 ICU Decision\nSupport System", font=("Arial", 20, "bold")).pack(pady=(15, 5))
-        ctk.CTkLabel(self.sidebar, text=f"{self.logged_user['name']}\n({self.logged_user['role']})", font=("Arial", 12), text_color="gray").pack(pady=(0, 10))
+        ctk.CTkLabel(
+            self.sidebar,
+            text="🏥 ICU Decision\nSupport System",
+            font=("Arial", 20, "bold")
+        ).pack(pady=(15, 5))
+
+        ctk.CTkLabel(
+            self.sidebar,
+            text=f"{self.logged_user['name']}\n({self.logged_user['role']})",
+            font=("Arial", 12),
+            text_color="gray"
+        ).pack(pady=(0, 10))
 
         sections = [
-            ("OVERVIEW & TRIAGE", [
-                ("Dashboard", "📊  Dashboard", self.show_dashboard),
-                ("Priority Queue", "🚨  Priority Queue", self.show_priority_queue),
-                ("Alerts Workflow", "🔔  Alerts Workflow", self.show_alerts),
-            ]),
-            ("PATIENT MANAGEMENT", [
-                ("Add Patient", "➕  Add Patient", self.show_add_patient),
-                ("Upload Patients CSV", "📁  Upload Patients CSV", self.upload_csv),
-            ]),
-            ("PATIENT CLINICAL VIEW", [
-                ("Patient Summary", "📋  Patient Summary", self.show_patient_summary),
-                ("Patient Details", "👤  Patient Details", self.show_patient_details),
-                ("Recommended Actions", "🩺  Recommended Actions", self.show_recommended_actions),
-                ("Risk Explanation", "💡  Risk Explanation", self.show_risk_explanation),
-            ]),
-            ("ANALYTICS & TOOLS", [
-                ("What-if Analysis", "🧪  What-if Analysis", self.show_what_if),
-                ("Trend Monitoring", "📈  Trend Monitoring", self.show_trends),
-                ("Missing Data", "⚠️  Missing Data", self.show_missing_data),
-            ]),
+            (
+                "OVERVIEW & TRIAGE",
+                [
+                    ("Dashboard", "📊  Dashboard", self.show_dashboard),
+                    ("Priority Queue", "🚨  Priority Queue", self.show_priority_queue),
+                    ("Alerts Workflow", "🔔  Alerts Workflow", self.show_alerts),
+                ]
+            ),
+            (
+                "PATIENT MANAGEMENT",
+                [
+                    ("Add Patient", "➕  Add Patient", self.show_add_patient),
+                    ("Upload Patients CSV", "📁  Upload Patients CSV", self.upload_csv),
+                ]
+            ),
+            (
+                "PATIENT CLINICAL VIEW",
+                [
+                    ("Patient Summary", "📋  Patient Summary", self.show_patient_summary),
+                    ("Patient Details", "👤  Patient Details", self.show_patient_details),
+                    ("Recommended Actions", "🩺  Recommended Actions", self.show_recommended_actions),
+                    ("Risk Explanation", "💡  Risk Explanation", self.show_risk_explanation),
+                ]
+            ),
+            (
+                "ANALYTICS & TOOLS",
+                [
+                    ("Department KPI", "📈  Department KPI", self.show_department_kpi),
+                    ("What-if Analysis", "🧪  What-if Analysis", self.show_what_if),
+                    ("Trend Monitoring", "📉  Trend Monitoring", self.show_trends),
+                    ("Missing Data", "⚠️  Missing Data", self.show_missing_data),
+                ]
+            ),
         ]
 
         if self.logged_user.get("role") == "Admin":
-            sections.append(("ADMINISTRATION", [("Admin Console", "⚙️  Admin Console", self.show_admin_console)]))
+            sections.append(
+                (
+                    "ADMINISTRATION",
+                    [
+                        ("Admin Console", "⚙️  Admin Console", self.show_admin_console)
+                    ]
+                )
+            )
 
         self.sidebar_buttons = {}
 
         for section_title, buttons in sections:
-            ctk.CTkLabel(self.sidebar, text=section_title, font=("Arial", 10, "bold"), text_color="#7f8c8d", anchor="w").pack(fill="x", padx=16, pady=(8, 2))
+            ctk.CTkLabel(
+                self.sidebar,
+                text=section_title,
+                font=("Arial", 10, "bold"),
+                text_color="#7f8c8d",
+                anchor="w"
+            ).pack(fill="x", padx=16, pady=(6, 2))
 
             for key, text, command in buttons:
                 btn = ctk.CTkButton(
-                    self.sidebar, text=text, anchor="w", height=28, font=("Arial", 12),
+                    self.sidebar,
+                    text=text,
+                    anchor="w",
+                    height=28,
+                    font=("Arial", 12),
                     command=lambda k=key, cmd=command: self.on_button_click(k, cmd)
                 )
                 btn.pack(pady=2, fill="x", padx=12)
@@ -815,22 +978,37 @@ class ICUApp(ctk.CTk):
 
         self.set_active_button("Dashboard")
 
-        ctk.CTkFrame(self.sidebar, height=2, fg_color="#d0d0d0").pack(fill="x", padx=15, pady=(15, 5))
+        ctk.CTkFrame(
+            self.sidebar,
+            height=2,
+            fg_color="#d0d0d0"
+        ).pack(fill="x", padx=15, pady=(10, 4))
 
         current_icon = "🌙  Dark Mode" if ctk.get_appearance_mode() == "Light" else "☀️  Light Mode"
         self.theme_button = ctk.CTkButton(
-            self.sidebar, text=current_icon, anchor="w", height=30, font=("Arial", 12),
-            fg_color="#4a6572", hover_color="#34495e", command=self.toggle_appearance_mode
+            self.sidebar,
+            text=current_icon,
+            anchor="w",
+            height=30,
+            font=("Arial", 12),
+            fg_color="#4a6572",
+            hover_color="#34495e",
+            command=self.toggle_appearance_mode
         )
-        self.theme_button.pack(fill="x", padx=12, pady=(3, 5))
+        self.theme_button.pack(fill="x", padx=12, pady=(2, 4))
 
         ctk.CTkButton(
-            self.sidebar, text="🔄  Switch User", anchor="w", height=30, font=("Arial", 12),
-            fg_color="#6c757d", hover_color="#5a6268", command=self.switch_user
-        ).pack(fill="x", padx=12, pady=(3, 10))
+            self.sidebar,
+            text="🔄  Switch User",
+            anchor="w",
+            height=30,
+            font=("Arial", 12),
+            fg_color="#6c757d",
+            hover_color="#5a6268",
+            command=self.switch_user
+        ).pack(fill="x", padx=12, pady=(2, 10))
 
     def edit_patient_room(self, patient):
-        """עריכת מספר חדר - הגבלה קלינית: תחילית ICU- קבועה + ספרות בלבד"""
         user_role = getattr(self, "logged_user", {}).get("role", "")
         if user_role != "Doctor":
             messagebox.showwarning("Permission Denied", "Only Doctors are authorized to update patient room assignments.")
@@ -965,6 +1143,7 @@ class ICUApp(ctk.CTk):
     def show_dashboard(self):
         self.clear_main()
         self.show_title("ICU Dashboard")
+        self.check_overdue_critical_patients()
 
         if not patients:
             ctk.CTkLabel(self.main, text="No patients are currently stored in the system.", font=("Arial", 18, "bold")).pack(pady=(40, 10))
@@ -1009,8 +1188,8 @@ class ICUApp(ctk.CTk):
             self.dashboard_page = 0
             self.show_dashboard()
 
-        ctk.CTkButton(search_frame, text="Search", width=90, command=apply_search).pack(side="left", padx=5)
-        ctk.CTkButton(search_frame, text="Clear", width=80, command=clear_search).pack(side="left", padx=5)
+        ctk.CTkButton(search_frame, text="Search 🔍", width=90, command=apply_search).pack(side="left", padx=5)
+        ctk.CTkButton(search_frame, text="Clear 🧹", width=80, command=clear_search).pack(side="left", padx=5)
         search_entry.bind("<Return>", lambda event: apply_search())
 
         query = self.dashboard_search.strip()
@@ -1064,7 +1243,7 @@ class ICUApp(ctk.CTk):
                 else:
                     ctk.CTkLabel(frame, text=str(value), font=("Arial", 13)).grid(row=row, column=col, padx=12, pady=8)
 
-            ctk.CTkButton(frame, text="Open", width=80, command=lambda p=patient: self.select_patient(p)).grid(row=row, column=7, padx=12, pady=8)
+            ctk.CTkButton(frame, text="Open 👤", width=80, command=lambda p=patient: self.select_patient(p)).grid(row=row, column=7, padx=12, pady=8)
 
         pagination_frame = ctk.CTkFrame(self.main, fg_color="transparent")
         pagination_frame.pack(fill="x", padx=20, pady=15)
@@ -1116,7 +1295,7 @@ class ICUApp(ctk.CTk):
             self.priority_page = 0
             self.show_priority_queue()
 
-        ctk.CTkButton(filter_frame, text="Apply", width=90, command=apply_filter).pack(side="left", padx=10)
+        ctk.CTkButton(filter_frame, text="Apply 🔍", width=90, command=apply_filter).pack(side="left", padx=10)
 
         ranked = []
         for patient in patients:
@@ -1156,7 +1335,6 @@ class ICUApp(ctk.CTk):
             patient_id = patient.get("subject_id", patient.get("id", "N/A"))
             room_num = patient.get("room_number", "Unassigned")
 
-            # כותרת כרטיס המטופל
             header_frame = ctk.CTkFrame(card, fg_color="transparent")
             header_frame.pack(fill="x", padx=20, pady=(10, 2))
 
@@ -1167,7 +1345,6 @@ class ICUApp(ctk.CTk):
                 text_color=get_risk_color(level)
             ).pack(side="left")
 
-            # אינדיקטור זמני בדיקה מחדש
             reassess_text, reassess_color = get_reassessment_info(patient)
             ctk.CTkLabel(
                 header_frame,
@@ -1176,12 +1353,10 @@ class ICUApp(ctk.CTk):
                 text_color=reassess_color
             ).pack(side="right")
 
-            # עדיפות טיפולית מוצעת
             actions = get_recommended_actions(level)
             if actions:
                 ctk.CTkLabel(card, text=f"Suggested priority: {actions[0]}", font=("Arial", 14)).pack(anchor="w", padx=20, pady=4)
 
-            # סרגל תגובה מהירה
             bottom_bar = ctk.CTkFrame(card, fg_color="transparent")
             bottom_bar.pack(fill="x", padx=20, pady=(4, 10))
 
@@ -1198,16 +1373,15 @@ class ICUApp(ctk.CTk):
             action_buttons.pack(side="right")
 
             ctk.CTkButton(
-                action_buttons, text="Mark Reviewed", width=110, height=26, font=("Arial", 11),
+                action_buttons, text="Mark Reviewed ✅", width=110, height=26, font=("Arial", 11),
                 command=lambda p=patient: self.quick_review_patient(p, "Reviewed")
             ).pack(side="left", padx=3)
 
             ctk.CTkButton(
-                action_buttons, text="Open Patient", width=100, height=26, font=("Arial", 11, "bold"),
+                action_buttons, text="Open Patient 👤", width=100, height=26, font=("Arial", 11, "bold"),
                 command=lambda p=patient: self.select_patient(p)
             ).pack(side="left", padx=3)
 
-        # דפדפות עמודים
         pagination = ctk.CTkFrame(self.main, fg_color="transparent")
         pagination.pack(fill="x", padx=25, pady=20)
 
@@ -1234,7 +1408,6 @@ class ICUApp(ctk.CTk):
             next_button.configure(state="disabled")
 
     def quick_review_patient(self, patient, status):
-        """עדכון מהיר של בדיקת מטופל מתוך ה-Priority Queue"""
         patient["alert_status"] = status
         patient["last_reviewed_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         patient["reviewed_by"] = getattr(self, "logged_user", {}).get("name", "Staff") if hasattr(self, "logged_user") else "Staff"
@@ -1244,6 +1417,7 @@ class ICUApp(ctk.CTk):
         self.show_priority_queue()
 
     def show_patient_summary(self):
+        """מסך סיכום מטופל בעיצוב מאוזן ונקי עם סרגל פעולות בתחתית"""
         if not self.require_selected_patient():
             return
         self.clear_main()
@@ -1256,10 +1430,10 @@ class ICUApp(ctk.CTk):
         card = ctk.CTkFrame(self.main)
         card.pack(fill="x", padx=25, pady=15)
 
-        # 1. חדר
+        # 1. שורת חדר עליונה
         room_num = patient.get("room_number", "Unassigned")
         room_frame = ctk.CTkFrame(card, fg_color="transparent")
-        room_frame.pack(anchor="w", padx=25, pady=(12, 4))
+        room_frame.pack(anchor="w", padx=25, pady=(15, 8))
 
         self.room_label_var = ctk.CTkLabel(room_frame, text=f"Room Assignment: {room_num}", font=("Arial", 17, "bold"))
         self.room_label_var.pack(side="left")
@@ -1273,18 +1447,6 @@ class ICUApp(ctk.CTk):
             command=lambda: self.edit_patient_room(patient)
         ).pack(side="left", padx=15)
 
-        # כפתור ייצוא דוח רפואי בכרטיס המטופל
-        ctk.CTkButton(
-            card,
-            text="📥  Export Medical Report (.txt)",
-            width=220,
-            height=34,
-            font=("Arial", 13, "bold"),
-            fg_color="#27ae60",
-            hover_color="#1e8449",
-            command=lambda: self.export_patient_report(patient)
-        ).pack(anchor="e", padx=25, pady=(10, 15))
-
         # 2. סיכום מדדים
         summary = [
             f"Risk level: {level}",
@@ -1296,7 +1458,7 @@ class ICUApp(ctk.CTk):
         ]
 
         for line in summary:
-            ctk.CTkLabel(card, text=line, font=("Arial", 17)).pack(anchor="w", padx=25, pady=5)
+            ctk.CTkLabel(card, text=line, font=("Arial", 17)).pack(anchor="w", padx=25, pady=4)
 
         # 3. הערת רופא / נימוק קליני (Physician Override Note)
         note_text = patient.get("clinical_note", "") or "None"
@@ -1320,14 +1482,41 @@ class ICUApp(ctk.CTk):
             command=lambda: self.edit_clinical_note(patient)
         ).pack(side="left", padx=15)
 
-        # 4. המלצות
-        ctk.CTkLabel(card, text="Suggested next steps:", font=("Arial", 18, "bold")).pack(anchor="w", padx=25, pady=(15, 8))
+        # 4. המלצות קליניות
+        ctk.CTkLabel(card, text="Suggested next steps:", font=("Arial", 18, "bold")).pack(anchor="w", padx=25, pady=(15, 6))
 
         for action in get_recommended_actions(level):
             ctk.CTkLabel(card, text=f"• {action}", font=("Arial", 15)).pack(anchor="w", padx=45, pady=3)
 
+        # ----------------------------------------------------
+        # 5. סרגל פעולות בתחתית הכרטיס (Bottom Action Bar)
+        # ----------------------------------------------------
+        summary_actions_bar = ctk.CTkFrame(card, fg_color="transparent")
+        summary_actions_bar.pack(fill="x", padx=25, pady=(20, 15))
+
+        ctk.CTkButton(
+            summary_actions_bar,
+            text="📥  Export Medical Report (.txt)",
+            width=220,
+            height=36,
+            font=("Arial", 13, "bold"),
+            fg_color="#27ae60",
+            hover_color="#1e8449",
+            command=lambda: self.export_patient_report(patient)
+        ).pack(side="right", padx=(10, 0))
+
+        ctk.CTkButton(
+            summary_actions_bar,
+            text="✏️  Quick Edit Patient Vitals & Labs",
+            width=230,
+            height=36,
+            font=("Arial", 13),
+            fg_color="#2980b9",
+            hover_color="#1f618d",
+            command=lambda: self.edit_patient_vitals(patient)
+        ).pack(side="right")
+
     def export_patient_report(self, patient):
-        """הפקת דוח רפואי רשמי של המטופל וייצוא לקובץ בנתיב מותאם מראש"""
         if not patient:
             return
 
@@ -1480,7 +1669,6 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
                 print(f"Could not load gender image: {e}")
 
     def edit_patient_vitals(self, patient):
-        """חלון עריכת מדדים פיזיולוגיים ומעבדה עם תיקוף קליני קשיח למניעת טעויות הקלדה"""
         user_role = getattr(self, "logged_user", {}).get("role", "")
         if user_role != "Doctor":
             messagebox.showwarning("Permission Denied", "Only Doctors are authorized to edit patient vital measurements.")
@@ -1628,42 +1816,113 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
 
         self.clear_main()
         patient = self.selected_patient
-        self.show_title(f"Why This Risk Score? - {patient['id']}")
+        self.show_title(f"Why This Risk Score? - Patient {patient['id']}")
 
         result = patient.get("model_result")
         if not result or not result.get("risk_drivers"):
             missing_fields = get_missing_model_fields(patient)
             if missing_fields:
-                ctk.CTkLabel(self.main, text="Risk explanation is unavailable because required clinical data is missing.", font=("Arial", 17, "bold")).pack(pady=(25, 10))
-                ctk.CTkLabel(self.main, text="Missing fields:", font=("Arial", 15)).pack(pady=5)
+                card = ctk.CTkFrame(self.main)
+                card.pack(fill="x", padx=25, pady=20)
+                ctk.CTkLabel(card, text="⚠️ Risk Explanation Unavailable", font=("Arial", 18, "bold"),
+                             text_color="#c0392b").pack(anchor="w", padx=20, pady=(15, 5))
+                ctk.CTkLabel(card,
+                             text="Core physiological data is missing to explain the ML model decision. Missing fields:",
+                             font=("Arial", 14)).pack(anchor="w", padx=20, pady=(0, 10))
                 for field in missing_fields:
-                    ctk.CTkLabel(self.main, text=f"• {field.replace('_', ' ').title()}", font=("Arial", 14)).pack(pady=2)
+                    ctk.CTkLabel(card, text=f"• {field.replace('_', ' ').title()}", font=("Arial", 14, "bold")).pack(
+                        anchor="w", padx=35, pady=2)
+
+                ctk.CTkButton(
+                    self.main,
+                    text="✏️  Enter Missing Vitals Now",
+                    font=("Arial", 13, "bold"),
+                    height=36,
+                    command=lambda: self.edit_patient_vitals(patient)
+                ).pack(pady=15)
                 return
 
             try:
                 result = call_model(patient)
             except Exception as e:
-                ctk.CTkLabel(self.main, text=f"Could not generate risk explanation:\n{e}", font=("Arial", 16), text_color="#c0392b").pack(pady=25)
+                ctk.CTkLabel(self.main, text=f"Could not generate risk explanation:\n{e}", font=("Arial", 16),
+                             text_color="#c0392b").pack(pady=25)
                 return
 
         drivers = result.get("risk_drivers", [])
         if not drivers:
-            ctk.CTkLabel(self.main, text="No significant risk drivers were identified for this patient.", font=("Arial", 17)).pack(pady=25)
+            ctk.CTkLabel(self.main, text="No significant risk drivers were identified for this patient.",
+                         font=("Arial", 17)).pack(pady=25)
             return
 
-        ctk.CTkLabel(self.main, text="Main factors influencing this patient's risk:", font=("Arial", 18, "bold")).pack(pady=(10, 15))
+        ctk.CTkLabel(self.main, text="Top Physiological Factors Influencing ML Risk Score:",
+                     font=("Arial", 18, "bold")).pack(anchor="w", padx=30, pady=(5, 12))
 
         for driver in drivers:
             direction = driver.get("direction")
-            arrow = "▲ Increases risk" if direction == "increase" else "▼ Decreases risk"
+            arrow = "▲ Increases Risk of Deterioration" if direction == "increase" else "▼ Decreases Risk (Protective Factor)"
             color = "#c0392b" if direction == "increase" else "#27ae60"
 
             card = ctk.CTkFrame(self.main)
-            card.pack(fill="x", padx=40, pady=8)
+            card.pack(fill="x", padx=25, pady=8)
 
-            ctk.CTkLabel(card, text=f"{driver.get('name', 'Unknown factor')} — {driver.get('value', 'N/A')}", font=("Arial", 18, "bold")).pack(anchor="w", padx=20, pady=(10, 4))
-            ctk.CTkLabel(card, text=arrow, text_color=color, font=("Arial", 15, "bold")).pack(anchor="w", padx=20, pady=3)
-            ctk.CTkLabel(card, text=f"Model impact: {driver.get('impact', 'N/A')}", font=("Arial", 13), text_color="gray").pack(anchor="w", padx=20, pady=(3, 10))
+            header_f = ctk.CTkFrame(card, fg_color="transparent")
+            header_f.pack(fill="x", padx=20, pady=(10, 3))
+
+            ctk.CTkLabel(header_f, text=f"{driver.get('name', 'Unknown factor')} — {driver.get('value', 'N/A')}",
+                         font=("Arial", 17, "bold")).pack(side="left")
+            ctk.CTkLabel(header_f, text=f"Impact: {driver.get('impact', 'N/A')}", font=("Arial", 13),
+                         text_color="gray").pack(side="right")
+
+            ctk.CTkLabel(card, text=arrow, text_color=color, font=("Arial", 14, "bold")).pack(anchor="w", padx=20,
+                                                                                              pady=(0, 10))
+
+        actions_bar = ctk.CTkFrame(self.main, fg_color="transparent")
+        actions_bar.pack(fill="x", padx=25, pady=(15, 25))
+
+        def copy_drivers_to_note():
+            user_role = getattr(self, "logged_user", {}).get("role", "")
+            if user_role != "Doctor":
+                messagebox.showwarning("Permission Denied",
+                                       "Only Doctors are authorized to append clinical justification notes.")
+                return
+
+            driver_summary = ", ".join([f"{d.get('name')}: {d.get('value')}" for d in drivers[:3]])
+            driver_text = f"[ML RISK DRIVERS: {driver_summary} logged at {datetime.datetime.now().strftime('%H:%M')}]"
+
+            existing_note = patient.get("clinical_note", "")
+            updated_note = f"{existing_note}\n{driver_text}".strip() if existing_note else driver_text
+            patient["clinical_note"] = updated_note
+            self.selected_patient = patient
+
+            for p in patients:
+                if str(p.get("subject_id", p.get("id"))) == str(patient.get("subject_id", patient.get("id"))):
+                    p["clinical_note"] = updated_note
+                    break
+
+            save_patient_to_database(patient)
+            messagebox.showinfo("Note Updated",
+                                "Key risk drivers were automatically formatted and attached to Physician Note.")
+
+        ctk.CTkButton(
+            actions_bar,
+            text="🩺  View Recommended Actions for Drivers ➔",
+            font=("Arial", 13, "bold"),
+            fg_color="#2980b9",
+            hover_color="#1f618d",
+            height=36,
+            command=self.show_recommended_actions
+        ).pack(side="right", padx=(10, 0))
+
+        ctk.CTkButton(
+            actions_bar,
+            text="📋  Insert Top Drivers into Physician Note",
+            font=("Arial", 13, "bold"),
+            fg_color="#34495e",
+            hover_color="#2c3e50",
+            height=36,
+            command=copy_drivers_to_note
+        ).pack(side="right")
 
     def show_recommended_actions(self):
         if not self.require_selected_patient():
@@ -1672,15 +1931,501 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
         patient = self.selected_patient
         score, level = calculate_risk_score(patient)
 
-        self.show_title(f"Recommended Actions - {patient['id']}")
-        ctk.CTkLabel(self.main, text=f"Current risk level: {level} ({score}/100)", font=("Arial", 22, "bold"), text_color=get_risk_color(level)).pack(pady=10)
+        self.show_title(f"Recommended Actions & Protocol Checklist - Patient {patient['id']}")
 
-        for action in get_recommended_actions(level):
+        status_card = ctk.CTkFrame(self.main)
+        status_card.pack(fill="x", padx=25, pady=(5, 15))
+
+        status_header = ctk.CTkFrame(status_card, fg_color="transparent")
+        status_header.pack(fill="x", padx=20, pady=12)
+
+        ctk.CTkLabel(
+            status_header,
+            text=f"Current Stratified Risk: {level} ({score}/100)",
+            font=("Arial", 20, "bold"),
+            text_color=get_risk_color(level)
+        ).pack(side="left")
+
+        ctk.CTkLabel(
+            status_header,
+            text=f"Room: {patient.get('room_number', 'Unassigned')}",
+            font=("Arial", 16, "bold")
+        ).pack(side="right")
+
+        ctk.CTkLabel(
+            self.main,
+            text="Clinical Protocol Action Checklist (Check items as executed):",
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w", padx=30, pady=(5, 10))
+
+        actions = get_recommended_actions(level)
+        action_checkboxes = []
+
+        checklist_frame = ctk.CTkFrame(self.main)
+        checklist_frame.pack(fill="x", padx=25, pady=5)
+
+        for action in actions:
+            row = ctk.CTkFrame(checklist_frame, fg_color="transparent")
+            row.pack(fill="x", padx=20, pady=8)
+
+            chk_var = ctk.BooleanVar(value=False)
+            chk = ctk.CTkCheckBox(
+                row,
+                text=action,
+                variable=chk_var,
+                font=("Arial", 15),
+                checkbox_width=24,
+                checkbox_height=24
+            )
+            chk.pack(side="left", padx=5)
+            action_checkboxes.append((action, chk_var))
+
+        ctk.CTkLabel(
+            self.main,
+            text="* Note: Automated clinical decision support recommendations do not substitute physician judgment.",
+            text_color="gray",
+            font=("Arial", 13, "italic")
+        ).pack(anchor="w", padx=30, pady=(10, 15))
+
+        actions_bar = ctk.CTkFrame(self.main, fg_color="transparent")
+        actions_bar.pack(fill="x", padx=25, pady=(5, 25))
+
+        def complete_selected_actions():
+            completed = [act for act, var in action_checkboxes if var.get()]
+            if not completed:
+                messagebox.showwarning("No Items Selected", "Please check at least one executed clinical action.")
+                return
+
+            completed_text = ", ".join(completed)
+            staff_name = getattr(self, "logged_user", {}).get("name", "Staff")
+            log_entry = f"[PROTOCOL EXECUTED: {completed_text} completed at {datetime.datetime.now().strftime('%H:%M')} by {staff_name}]"
+
+            existing_note = patient.get("clinical_note", "")
+            updated_note = f"{existing_note}\n{log_entry}".strip() if existing_note else log_entry
+            patient["clinical_note"] = updated_note
+            patient["alert_status"] = "In Progress"
+            patient["last_reviewed_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            patient["reviewed_by"] = staff_name
+            self.selected_patient = patient
+
+            for p in patients:
+                if str(p.get("subject_id", p.get("id"))) == str(patient.get("subject_id", patient.get("id"))):
+                    p.update(patient)
+                    break
+
+            save_patient_to_database(patient)
+            messagebox.showinfo("Protocol Acknowledged",
+                                f"{len(completed)} action(s) marked as completed and appended to patient record.")
+            self.show_recommended_actions()
+
+        def add_clinical_override():
+            user_role = getattr(self, "logged_user", {}).get("role", "")
+            if user_role != "Doctor":
+                messagebox.showwarning("Permission Denied", "Only Doctors are authorized to log protocol overrides.")
+                return
+            self.edit_clinical_note(patient)
+
+        ctk.CTkButton(
+            actions_bar,
+            text="✅  Acknowledge & Save Executed Protocol",
+            font=("Arial", 13, "bold"),
+            fg_color="#27ae60",
+            hover_color="#1e8449",
+            height=36,
+            command=complete_selected_actions
+        ).pack(side="right", padx=(10, 0))
+
+        ctk.CTkButton(
+            actions_bar,
+            text="📝  Clinical Override / Reason for Deviation",
+            font=("Arial", 13),
+            fg_color="#34495e",
+            hover_color="#2c3e50",
+            height=36,
+            command=add_clinical_override
+        ).pack(side="right")
+
+    def show_department_kpi(self):
+        self.clear_main()
+        self.show_title("ICU Department Analytics & KPI")
+
+        if not patients:
+            ctk.CTkLabel(
+                self.main,
+                text="No patient data available to generate department analytics.",
+                font=("Arial", 16)
+            ).pack(pady=40)
+            return
+
+        total_patients = len(patients)
+
+        risk_counts = {"CRITICAL": 0, "HIGH": 0, "MODERATE": 0, "LOW": 0, "INCOMPLETE": 0, "ERROR": 0}
+        active_alerts_count = 0
+        occupied_rooms = set()
+        total_hr, total_sys_bp, total_dias_bp, total_age = 0, 0, 0, 0
+        valid_vitals_count = 0
+
+        for p in patients:
+            score, level = calculate_risk_score(p)
+            risk_counts[level] = risk_counts.get(level, 0) + 1
+
+            if p.get("alert_status", "New") not in ["Resolved", "Inactive"]:
+                active_alerts_count += 1
+
+            if p.get("room_number"):
+                occupied_rooms.add(p["room_number"])
+
+            if p.get("heart_rate_mean") and p.get("systolic_bp_mean") and p.get("diastolic_bp_mean") and p.get("age"):
+                try:
+                    total_hr += float(p["heart_rate_mean"])
+                    total_sys_bp += float(p["systolic_bp_mean"])
+                    total_dias_bp += float(p["diastolic_bp_mean"])
+                    total_age += float(p["age"])
+                    valid_vitals_count += 1
+                except (ValueError, TypeError):
+                    pass
+
+        kpi_frame = ctk.CTkFrame(self.main, fg_color="transparent")
+        kpi_frame.pack(fill="x", padx=25, pady=(5, 20))
+
+        kpis = [
+            ("Total Patients", f"{total_patients:,}", "#2980b9"),
+            ("Critical Risk", f"{risk_counts['CRITICAL']:,}", "#c0392b"),
+            ("Active Alerts", f"{active_alerts_count:,}", "#e67e22"),
+            ("Beds Occupied", f"{len(occupied_rooms):,}", "#27ae60")
+        ]
+
+        for i, (title, val, color) in enumerate(kpis):
+            card = ctk.CTkFrame(kpi_frame, height=100)
+            card.pack(side="left", fill="both", expand=True, padx=8)
+            ctk.CTkLabel(card, text=title, font=("Arial", 14), text_color="gray").pack(pady=(15, 2))
+            ctk.CTkLabel(card, text=val, font=("Arial", 26, "bold"), text_color=color).pack(pady=(0, 15))
+
+        risk_frame = ctk.CTkFrame(self.main)
+        risk_frame.pack(fill="x", padx=25, pady=10)
+
+        ctk.CTkLabel(risk_frame, text="Department Risk Stratification", font=("Arial", 18, "bold")).pack(anchor="w", padx=20, pady=(15, 10))
+
+        risk_levels_meta = [
+            ("CRITICAL", "Immediate physician evaluation required", "#c0392b"),
+            ("HIGH", "Close telemetry and vital monitoring", "#e67e22"),
+            ("MODERATE", "Periodic assessment and lab review", "#f39c12"),
+            ("LOW", "Standard routine clinical care", "#27ae60"),
+        ]
+
+        for level, desc, color in risk_levels_meta:
+            count = risk_counts.get(level, 0)
+            pct = (count / total_patients * 100) if total_patients > 0 else 0
+            row = ctk.CTkFrame(risk_frame, fg_color="transparent")
+            row.pack(fill="x", padx=20, pady=6)
+
+            ctk.CTkLabel(row, text=level, width=110, anchor="w", font=("Arial", 15, "bold"), text_color=color).pack(side="left")
+            ctk.CTkLabel(row, text=f"{count:,} patients ({pct:.1f}%)", width=170, anchor="w", font=("Arial", 14, "bold")).pack(side="left")
+            ctk.CTkLabel(row, text=f"• {desc}", anchor="w", font=("Arial", 13), text_color="gray").pack(side="left", padx=10)
+
+        ctk.CTkFrame(risk_frame, height=10, fg_color="transparent").pack()
+
+        if valid_vitals_count > 0:
+            avg_hr = total_hr / valid_vitals_count
+            avg_sys = total_sys_bp / valid_vitals_count
+            avg_dias = total_dias_bp / valid_vitals_count
+            avg_age = total_age / valid_vitals_count
+
+            vitals_frame = ctk.CTkFrame(self.main)
+            vitals_frame.pack(fill="x", padx=25, pady=15)
+
+            ctk.CTkLabel(vitals_frame, text="Department Clinical Averages", font=("Arial", 18, "bold")).pack(anchor="w", padx=20, pady=(15, 10))
+
+            avg_grid = ctk.CTkFrame(vitals_frame, fg_color="transparent")
+            avg_grid.pack(fill="x", padx=20, pady=(0, 15))
+
+            avg_stats = [
+                ("Average Patient Age", f"{avg_age:.1f} yrs"),
+                ("Average Heart Rate", f"{avg_hr:.1f} bpm"),
+                ("Average Blood Pressure", f"{avg_sys:.1f} / {avg_dias:.1f} mmHg"),
+                ("Monitored Patients", f"{valid_vitals_count:,}")
+            ]
+
+            for idx, (stat_title, stat_val) in enumerate(avg_stats):
+                r, c = divmod(idx, 2)
+                stat_box = ctk.CTkFrame(avg_grid, fg_color="transparent")
+                stat_box.grid(row=r, column=c, sticky="w", padx=20, pady=8)
+                ctk.CTkLabel(stat_box, text=f"{stat_title}:", font=("Arial", 14, "bold")).pack(side="left", padx=(0, 8))
+                ctk.CTkLabel(stat_box, text=stat_val, font=("Arial", 14), text_color="#2980b9").pack(side="left")
+
+        bottom_actions_frame = ctk.CTkFrame(self.main, fg_color="transparent")
+        bottom_actions_frame.pack(fill="x", padx=25, pady=(10, 25))
+
+        ctk.CTkButton(
+            bottom_actions_frame,
+            text="📊  Export Department to Excel / CSV",
+            font=("Arial", 13, "bold"),
+            fg_color="#27ae60",
+            hover_color="#1e8449",
+            height=36,
+            command=self.export_department_csv
+        ).pack(side="right", padx=(10, 0))
+
+        ctk.CTkButton(
+            bottom_actions_frame,
+            text="🔄  Refresh Live Metrics",
+            font=("Arial", 13),
+            fg_color="#34495e",
+            hover_color="#2c3e50",
+            height=36,
+            command=self.show_department_kpi
+        ).pack(side="right")
+
+    def export_department_csv(self):
+        if not patients:
+            messagebox.showwarning("Export Failed", "No patient data available to export.")
+            return
+
+        export_data = []
+        for p in patients:
+            score, level = calculate_risk_score(p)
+            export_data.append({
+                "Subject_ID": p.get("subject_id", p.get("id")),
+                "Hospital_Admit_ID": p.get("hadm_id", ""),
+                "ICU_Stay_ID": p.get("icustay_id", ""),
+                "Room_Number": p.get("room_number", "Unassigned"),
+                "Age": p.get("age"),
+                "Gender": p.get("gender"),
+                "Risk_Level": level,
+                "Risk_Score_Percent": score,
+                "Alert_Status": p.get("alert_status", "New"),
+                "Heart_Rate_Mean": p.get("heart_rate_mean"),
+                "Systolic_BP_Mean": p.get("systolic_bp_mean"),
+                "Diastolic_BP_Mean": p.get("diastolic_bp_mean"),
+                "Lactate_Max": p.get("lactate_max"),
+                "Creatinine_Max": p.get("creatinine_max"),
+                "Physician_Note": p.get("clinical_note", ""),
+                "Last_Reviewed_At": p.get("last_reviewed_at", "Never"),
+                "Reviewed_By": p.get("reviewed_by", "N/A")
+            })
+
+        df_export = pd.DataFrame(export_data)
+
+        default_filename = f"ICU_Department_Export_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        file_path = filedialog.asksaveasfilename(
+            title="Save Department Summary CSV",
+            initialfile=default_filename,
+            defaultextension=".csv",
+            filetypes=[("CSV (Comma delimited)", "*.csv"), ("All Files", "*.*")]
+        )
+
+        if file_path:
+            try:
+                df_export.to_csv(file_path, index=False, encoding="utf-8-sig")
+                messagebox.showinfo("Export Successful", f"Department data ({len(export_data)} patients) saved to:\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Could not export CSV:\n{e}")
+
+    def show_trends(self):
+        if not self.require_selected_patient():
+            return
+        self.clear_main()
+        patient = self.selected_patient
+
+        self.show_title(f"Trend Monitoring - Patient {patient['id']}")
+
+        trends = [
+            ("Heart Rate", patient.get("heart_rate_min", 0), patient.get("heart_rate_mean", 0),
+             patient.get("heart_rate_max", 0), "bpm"),
+            ("Systolic BP", patient.get("systolic_bp_min", 0), patient.get("systolic_bp_mean", 0),
+             patient.get("systolic_bp_max", 0), "mmHg"),
+            ("Diastolic BP", patient.get("diastolic_bp_min", 0), patient.get("diastolic_bp_mean", 0),
+             patient.get("diastolic_bp_max", 0), "mmHg"),
+        ]
+
+        has_high_variability = False
+
+        for name, min_v, mean_v, max_v, unit in trends:
             card = ctk.CTkFrame(self.main)
-            card.pack(fill="x", padx=25, pady=8)
-            ctk.CTkLabel(card, text=f"• {action}", font=("Arial", 17)).pack(anchor="w", padx=25, pady=12)
+            card.pack(fill="x", padx=25, pady=10)
 
-        ctk.CTkLabel(self.main, text="Note: recommendations are for decision support only and do not replace clinical judgment.", text_color="gray", font=("Arial", 14)).pack(pady=20)
+            delta = float(max_v) - float(min_v)
+            trend_text = f"{name}: Min={min_v} {unit} | Mean={mean_v} {unit} | Max={max_v} {unit} (Δ = {delta:.1f} {unit})"
+
+            if delta > 40:
+                has_high_variability = True
+                interpretation = "⚠️ High variability detected — may indicate hemodynamic instability."
+                color = "#c0392b"
+            elif delta > 25:
+                interpretation = "ℹ️ Moderate fluctuations observed — recommend ongoing telemetry observation."
+                color = "#e67e22"
+            else:
+                interpretation = "✅ Stable physiological range — no significant variability detected."
+                color = "#27ae60"
+
+            ctk.CTkLabel(card, text=trend_text, font=("Arial", 17, "bold")).pack(anchor="w", padx=20, pady=(12, 4))
+            ctk.CTkLabel(card, text=interpretation, text_color=color, font=("Arial", 14, "bold")).pack(anchor="w",
+                                                                                                       padx=20,
+                                                                                                       pady=(0, 12))
+
+        actions_bar = ctk.CTkFrame(self.main, fg_color="transparent")
+        actions_bar.pack(fill="x", padx=25, pady=(15, 25))
+
+        def flag_instability():
+            user_role = getattr(self, "logged_user", {}).get("role", "")
+            if user_role != "Doctor":
+                messagebox.showwarning("Permission Denied", "Only Doctors are authorized to append clinical flags.")
+                return
+
+            existing_note = patient.get("clinical_note", "")
+            flag_text = f"[CLINICAL FLAG: Hemodynamic instability noted due to high vital sign variability at {datetime.datetime.now().strftime('%H:%M')}]"
+
+            updated_note = f"{existing_note}\n{flag_text}".strip() if existing_note else flag_text
+            patient["clinical_note"] = updated_note
+            self.selected_patient = patient
+
+            for p in patients:
+                if str(p.get("subject_id", p.get("id"))) == str(patient.get("subject_id", patient.get("id"))):
+                    p["clinical_note"] = updated_note
+                    break
+
+            save_patient_to_database(patient)
+            messagebox.showinfo("Flag Recorded",
+                                f"Hemodynamic alert flag has been attached to Patient {patient.get('id')} clinical note.")
+
+        def navigate_to_what_if():
+            self.set_active_button("What-if Analysis")
+            self.show_what_if()
+
+        ctk.CTkButton(
+            actions_bar,
+            text="🧪  Simulate Trend Stabilization in What-If",
+            font=("Arial", 13, "bold"),
+            fg_color="#2980b9",
+            hover_color="#1f618d",
+            height=36,
+            command=navigate_to_what_if
+        ).pack(side="right", padx=(10, 0))
+
+        if has_high_variability:
+            ctk.CTkButton(
+                actions_bar,
+                text="🚩  Flag Hemodynamic Instability in Chart",
+                font=("Arial", 13, "bold"),
+                fg_color="#c0392b",
+                hover_color="#922b21",
+                height=36,
+                command=flag_instability
+            ).pack(side="right")
+
+    def show_missing_data(self):
+        if not self.require_selected_patient():
+            return
+        self.clear_main()
+        patient = self.selected_patient
+
+        self.show_title(f"Missing Data & Clinical Recommendations - Patient {patient['id']}")
+
+        missing_items = []
+        if patient.get("lactate_max") is None:
+            missing_items.append(
+                ("Lactate", "High serum lactate is a critical marker for tissue hypoperfusion / sepsis."))
+        if patient.get("creatinine_max") is None:
+            missing_items.append(("Creatinine",
+                                  "Serum creatinine is required to evaluate acute kidney injury (AKI) and renal clearance."))
+
+        if not missing_items:
+            card = ctk.CTkFrame(self.main)
+            card.pack(fill="x", padx=25, pady=20)
+
+            ctk.CTkLabel(
+                card,
+                text="✅ Complete Clinical Profile",
+                font=("Arial", 18, "bold"),
+                text_color="#27ae60"
+            ).pack(anchor="w", padx=20, pady=(15, 5))
+
+            ctk.CTkLabel(
+                card,
+                text="All core physiological vitals and key laboratory indicators (Lactate, Creatinine) are present for this patient.",
+                font=("Arial", 14)
+            ).pack(anchor="w", padx=20, pady=(0, 15))
+
+            ctk.CTkButton(
+                self.main,
+                text="📋  Back to Patient Summary",
+                font=("Arial", 13, "bold"),
+                width=220,
+                height=36,
+                command=self.show_patient_summary
+            ).pack(pady=10)
+            return
+
+        for lab_name, clinical_impact in missing_items:
+            card = ctk.CTkFrame(self.main)
+            card.pack(fill="x", padx=25, pady=10)
+
+            ctk.CTkLabel(
+                card,
+                text=f"⚠️ Missing Lab Parameter: {lab_name}",
+                font=("Arial", 17, "bold"),
+                text_color="#e67e22"
+            ).pack(anchor="w", padx=20, pady=(12, 4))
+
+            ctk.CTkLabel(
+                card,
+                text=f"Clinical Relevance: {clinical_impact}",
+                font=("Arial", 14),
+                text_color="gray"
+            ).pack(anchor="w", padx=20, pady=2)
+
+            ctk.CTkLabel(
+                card,
+                text=f"Recommended Action: Order STAT {lab_name} laboratory panel to refine ML risk stratification.",
+                font=("Arial", 14, "bold")
+            ).pack(anchor="w", padx=20, pady=(4, 12))
+
+        actions_bar = ctk.CTkFrame(self.main, fg_color="transparent")
+        actions_bar.pack(fill="x", padx=25, pady=(15, 25))
+
+        def order_stat_labs():
+            user_role = getattr(self, "logged_user", {}).get("role", "")
+            if user_role != "Doctor":
+                messagebox.showwarning("Permission Denied",
+                                       "Only Doctors are authorized to place STAT laboratory orders.")
+                return
+
+            missing_names = ", ".join([name for name, _ in missing_items])
+            order_text = f"[STAT LAB ORDER: {missing_names} panel ordered at {datetime.datetime.now().strftime('%H:%M')} by {getattr(self, 'logged_user', {}).get('name', 'Physician')}]"
+
+            existing_note = patient.get("clinical_note", "")
+            updated_note = f"{existing_note}\n{order_text}".strip() if existing_note else order_text
+            patient["clinical_note"] = updated_note
+            self.selected_patient = patient
+
+            for p in patients:
+                if str(p.get("subject_id", p.get("id"))) == str(patient.get("subject_id", patient.get("id"))):
+                    p["clinical_note"] = updated_note
+                    break
+
+            save_patient_to_database(patient)
+            messagebox.showinfo("Lab Order Placed",
+                                f"STAT Order for ({missing_names}) has been dispatched to laboratory and logged in chart.")
+
+        ctk.CTkButton(
+            actions_bar,
+            text="✏️  Enter Received Lab Results",
+            font=("Arial", 13, "bold"),
+            fg_color="#2980b9",
+            hover_color="#1f618d",
+            height=36,
+            command=lambda: self.edit_patient_vitals(patient)
+        ).pack(side="right", padx=(10, 0))
+
+        ctk.CTkButton(
+            actions_bar,
+            text="🧪  Order STAT Missing Labs",
+            font=("Arial", 13, "bold"),
+            fg_color="#e67e22",
+            hover_color="#d35400",
+            height=36,
+            command=order_stat_labs
+        ).pack(side="right")
 
     def show_alerts(self):
         self.clear_main()
@@ -1714,7 +2459,7 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
             self.alerts_page = 0
             self.show_alerts()
 
-        ctk.CTkButton(filter_frame, text="Apply", width=90, command=apply_filters).pack(side="left", padx=15)
+        ctk.CTkButton(filter_frame, text="Apply 🔍", width=90, command=apply_filters).pack(side="left", padx=15)
 
         alert_patients = []
         for patient in patients:
@@ -1791,10 +2536,10 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
             button_frame = ctk.CTkFrame(card, fg_color="transparent")
             button_frame.pack(anchor="e", padx=15, pady=10)
 
-            ctk.CTkButton(button_frame, text="Open", width=80, command=lambda p=patient: self.select_patient(p)).pack(side="left", padx=4)
-            ctk.CTkButton(button_frame, text="Reviewed", width=95, command=lambda p=patient: self.update_alert_status(p, "Reviewed")).pack(side="left", padx=4)
-            ctk.CTkButton(button_frame, text="In Progress", width=105, command=lambda p=patient: self.update_alert_status(p, "In Progress")).pack(side="left", padx=4)
-            ctk.CTkButton(button_frame, text="Resolved", width=90, command=lambda p=patient: self.update_alert_status(p, "Resolved")).pack(side="left", padx=4)
+            ctk.CTkButton(button_frame, text="Open 👤", width=80, command=lambda p=patient: self.select_patient(p)).pack(side="left", padx=4)
+            ctk.CTkButton(button_frame, text="Reviewed 👁️", width=95, command=lambda p=patient: self.update_alert_status(p, "Reviewed")).pack(side="left", padx=4)
+            ctk.CTkButton(button_frame, text="In Progress ⏳", width=105, command=lambda p=patient: self.update_alert_status(p, "In Progress")).pack(side="left", padx=4)
+            ctk.CTkButton(button_frame, text="Resolved ✅", width=90, command=lambda p=patient: self.update_alert_status(p, "Resolved")).pack(side="left", padx=4)
 
         pagination = ctk.CTkFrame(self.main, fg_color="transparent")
         pagination.pack(fill="x", padx=25, pady=20)
@@ -1874,35 +2619,6 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
                 messagebox.showerror("Error", str(e))
 
         ctk.CTkButton(self.main, text="Run What-if Analysis", command=run_what_if).pack(pady=10)
-
-    def show_trends(self):
-        if not self.require_selected_patient():
-            return
-        self.clear_main()
-        patient = self.selected_patient
-
-        self.show_title(f"Trend Monitoring - {patient['id']}")
-
-        trends = [
-            ("Heart Rate", patient["heart_rate_min"], patient["heart_rate_mean"], patient["heart_rate_max"]),
-            ("Systolic BP", patient["systolic_bp_min"], patient["systolic_bp_mean"], patient["systolic_bp_max"]),
-            ("Diastolic BP", patient["diastolic_bp_min"], patient["diastolic_bp_mean"], patient["diastolic_bp_max"]),
-        ]
-
-        for name, min_v, mean_v, max_v in trends:
-            card = ctk.CTkFrame(self.main)
-            card.pack(fill="x", padx=25, pady=10)
-
-            trend_text = f"{name}: min={min_v}, mean={mean_v}, max={max_v}"
-            if max_v - min_v > 40:
-                interpretation = "High variability — may indicate instability"
-                color = "#e67e22"
-            else:
-                interpretation = "No major variability detected"
-                color = "#27ae60"
-
-            ctk.CTkLabel(card, text=trend_text, font=("Arial", 18, "bold")).pack(anchor="w", padx=20, pady=8)
-            ctk.CTkLabel(card, text=interpretation, text_color=color, font=("Arial", 15)).pack(anchor="w", padx=20, pady=5)
 
     def show_add_patient(self):
         self.clear_main()
@@ -2069,7 +2785,7 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
             except Exception as e:
                 messagebox.showerror("Error", f"Could not add patient:\n{e}")
 
-        ctk.CTkButton(self.main, text="Add Patient & Calculate Risk", width=280, height=45, command=save_patient).pack(pady=25)
+        ctk.CTkButton(self.main, text="➕ Add Patient & Calculate Risk 📊", width=280, height=45, command=save_patient).pack(pady=25)
 
     def optional_float(self, value):
         value = str(value).strip()
@@ -2215,28 +2931,6 @@ CONFIDENTIAL MEDICAL RECORD - FOR AUTHORIZED CLINICAL USE ONLY
                 self.after(0, show_error)
 
         threading.Thread(target=import_worker, daemon=True).start()
-
-    def show_missing_data(self):
-        if not self.require_selected_patient():
-            return
-        self.clear_main()
-        patient = self.selected_patient
-
-        self.show_title(f"Missing Data Recommendations - {patient['id']}")
-        missing = []
-
-        if patient.get("lactate_max") is None:
-            missing.append("Lactate is missing — consider ordering lactate test if clinically relevant.")
-        if patient.get("creatinine_max") is None:
-            missing.append("Creatinine is missing — consider reviewing renal function labs.")
-
-        if not missing:
-            ctk.CTkLabel(self.main, text="No important missing data detected.", font=("Arial", 18), text_color="#27ae60").pack(pady=30)
-        else:
-            for item in missing:
-                card = ctk.CTkFrame(self.main)
-                card.pack(fill="x", padx=25, pady=10)
-                ctk.CTkLabel(card, text=f"• {item}", font=("Arial", 16)).pack(anchor="w", padx=20, pady=12)
 
 
 if __name__ == "__main__":
