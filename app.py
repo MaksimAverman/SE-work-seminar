@@ -497,67 +497,93 @@ class LoginWindow(ctk.CTk):
         super().__init__()
 
         self.title("ICU Clinical Decision Support System - Login")
-        self.geometry("520x620")
+        self.geometry("420x454")
         self.resizable(False, False)
         self.logged_user = None
 
-        container = ctk.CTkFrame(self, width=440, height=540)
-        container.pack(expand=True, padx=30, pady=25)
+        FIELD_WIDTH = 340
+        INNER_PAD = 12  # card border -> controls, matches the gap between fields
+
+        # Card hugs the form: it auto-sizes to the content plus an even inner pad,
+        # so the border-to-control margin equals the spacing between the fields.
+        card = ctk.CTkFrame(self, corner_radius=16)
+        card.pack(expand=True, padx=24, pady=24)
+
+        # Content is auto-sized to its children, so every control shares one width.
+        container = ctk.CTkFrame(card, fg_color="transparent")
+        container.pack(padx=INNER_PAD, pady=INNER_PAD)
 
         ctk.CTkLabel(
             container,
             text="🏥 ICU Decision Support",
             font=("Arial", 24, "bold")
-        ).pack(pady=(20, 5))
+        ).pack(pady=(18, 6))
 
         ctk.CTkLabel(
             container,
             text="Healthcare Professional Login",
             font=("Arial", 15),
             text_color="gray"
-        ).pack(pady=(0, 20))
+        ).pack(pady=(0, 22))
 
         self.username_entry = ctk.CTkEntry(
             container,
-            width=320,
-            height=40,
+            width=FIELD_WIDTH,
+            height=42,
             placeholder_text="Username"
         )
-        self.username_entry.pack(pady=8)
+        self.username_entry.pack(pady=(0, 12))
 
-        password_frame = ctk.CTkFrame(container, fg_color="transparent")
-        password_frame.pack(pady=8)
+        # Fixed-width holder so the password box matches the username box exactly;
+        # the show/hide button floats inside it on the right edge.
+        password_frame = ctk.CTkFrame(
+            container,
+            fg_color="transparent",
+            width=FIELD_WIDTH,
+            height=42
+        )
+        password_frame.pack(pady=(0, 12))
+        password_frame.pack_propagate(False)
 
         self.password_entry = ctk.CTkEntry(
             password_frame,
-            width=275,
-            height=40,
+            height=42,
             placeholder_text="Password",
             show="*"
         )
-        self.password_entry.pack(side="left", padx=(0, 5))
+        self.password_entry.pack(fill="both", expand=True)
 
         self.show_password_var = False
+        # Custom eye icons keep the glyph tightly centered, so the button stays
+        # inside the field with an even margin (unlike the emoji's stray padding).
+        self.eye_open_img = ctk.CTkImage(
+            Image.open(APP_DIR / "images" / "eye.png"), size=(20, 20)
+        )
+        self.eye_off_img = ctk.CTkImage(
+            Image.open(APP_DIR / "images" / "eye_off.png"), size=(20, 20)
+        )
+        # Parent the icon to the entry itself so its transparent background
+        # matches the field (not the card behind it).
         self.toggle_pwd_btn = ctk.CTkButton(
-            password_frame,
-            text="👁️",
-            width=40,
-            height=40,
-            font=("Arial", 14),
-            fg_color="#7f8c8d",
-            hover_color="#95a5a6",
+            self.password_entry,
+            text="",
+            image=self.eye_open_img,
+            width=24,
+            height=24,
+            fg_color="transparent",
+            hover=False,
             command=self.toggle_password_visibility
         )
-        self.toggle_pwd_btn.pack(side="left")
+        self.toggle_pwd_btn.place(relx=1.0, rely=0.5, anchor="e", x=-6)
 
         ctk.CTkButton(
             container,
             text="Login",
-            width=320,
-            height=40,
+            width=FIELD_WIDTH,
+            height=42,
             font=("Arial", 14, "bold"),
             command=self.login
-        ).pack(pady=15)
+        ).pack(pady=(4, 0))
 
         self.status_label = ctk.CTkLabel(
             container,
@@ -565,7 +591,7 @@ class LoginWindow(ctk.CTk):
             text_color="red",
             font=("Arial", 12)
         )
-        self.status_label.pack(pady=(0, 10))
+        self.status_label.pack(pady=(8, 12))
 
         self.password_entry.bind(
             "<Return>",
@@ -573,7 +599,7 @@ class LoginWindow(ctk.CTk):
         )
 
         demo_frame = ctk.CTkFrame(container, fg_color="#eef2f7", corner_radius=8)
-        demo_frame.pack(fill="x", padx=20, pady=(5, 15))
+        demo_frame.pack(fill="x", pady=(0, 0))
 
         ctk.CTkLabel(
             demo_frame,
@@ -621,11 +647,11 @@ class LoginWindow(ctk.CTk):
     def toggle_password_visibility(self):
         if self.show_password_var:
             self.password_entry.configure(show="*")
-            self.toggle_pwd_btn.configure(text="👁️", fg_color="#7f8c8d")
+            self.toggle_pwd_btn.configure(image=self.eye_open_img)
             self.show_password_var = False
         else:
             self.password_entry.configure(show="")
-            self.toggle_pwd_btn.configure(text="🙈", fg_color="#2980b9")
+            self.toggle_pwd_btn.configure(image=self.eye_off_img)
             self.show_password_var = True
 
     def fill_credentials(self, username, password):

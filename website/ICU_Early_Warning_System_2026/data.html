@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data &amp; EDA — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html" class="active">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html">Application</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>Data &amp; Exploratory Analysis</h1>
+    <p>Dataset composition, missingness, class balance, and feature relationships.</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <section>
+    <h2>Dataset</h2>
+    <p>
+      <code>COMPLETE_ICU_RISK_DATASET.csv</code> — a MIMIC-derived ICU
+      cohort. Each row is one ICU stay, with vitals aggregated over the
+      early monitoring window, admission context, optional lab draws, and a
+      deterioration/mortality outcome label.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <caption>Core input fields used by the model</caption>
+        <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        <tr><td>age</td><td>number</td><td>Patient age in years</td></tr>
+        <tr><td>gender</td><td>M / F</td><td>Patient sex</td></tr>
+        <tr><td>heart_rate_mean / min / max</td><td>bpm</td><td>Heart rate over the monitoring window</td></tr>
+        <tr><td>systolic_bp_mean / min / max</td><td>mmHg</td><td>Systolic blood pressure</td></tr>
+        <tr><td>diastolic_bp_mean / min / max</td><td>mmHg</td><td>Diastolic blood pressure</td></tr>
+        <tr><td>admit_hour, admit_dayofweek</td><td>int</td><td>Time-of-admission context</td></tr>
+        <tr><td>lactate_max</td><td>mmol/L (optional)</td><td>Peak lactate, if drawn — strong sepsis/shock signal</td></tr>
+        <tr><td>creatinine_max</td><td>mg/dL (optional)</td><td>Peak creatinine, if drawn — renal function signal</td></tr>
+      </table>
+    </div>
+    <p>Full raw file: <a href="downloads.html">download from Downloads</a>.</p>
+  </section>
+
+  <section>
+    <h2>Data quality</h2>
+    <p>
+      Labs are the main source of missingness — not every patient has an
+      early lactate or creatinine draw. Physiologically impossible sensor
+      values (e.g. blood pressure readings in the hundreds of thousands)
+      were treated as invalid and replaced before imputation.
+    </p>
+    <div class="fig-grid">
+      <figure class="figure">
+        <img src="assets/img/fig_01_missing_values.png" alt="Missing values by column">
+        <figcaption>Fig. 1 — Missing-value rate per column. Labs (lactate, creatinine) are the least complete fields.</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_02_outcome_distribution.png" alt="Outcome class distribution">
+        <figcaption>Fig. 2 — Outcome distribution: deterioration is the minority class, motivating the imbalance-aware modeling in Methodology.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Feature relationships</h2>
+    <div class="fig-grid">
+      <figure class="figure">
+        <img src="assets/img/fig_03_correlation_heatmap.png" alt="Correlation heatmap">
+        <figcaption>Fig. 3 — Correlation heatmap across numeric features.</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_04_feature_distributions.png" alt="Feature distributions by outcome">
+        <figcaption>Fig. 4 — Distributions of key vitals, split by outcome class.</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_05_boxplots.png" alt="Boxplots of key vitals by outcome">
+        <figcaption>Fig. 5 — Boxplots highlighting separation between at-risk and stable patients.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the EDA motivated</h2>
+    <ul class="clean">
+      <li><strong>Class imbalance</strong> → macro-F1, sensitivity, and a tuned decision threshold instead of raw accuracy (see <a href="methodology.html">Methodology</a>).</li>
+      <li><strong>Frequent missing labs</strong> → explicit <code>*_missing</code> indicator flags plus cohort-median imputation, rather than dropping rows.</li>
+      <li><strong>Correlated vitals</strong> (e.g. BP min/mean/max) → derived ratio/range features (shock index, pulse pressure, MAP, BP range) that compress redundant signal into a single informative value.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+<script src="assets/js/lightbox.js"></script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Results — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html" class="active">Results</a>
+      <a href="application.html">Application</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>Results</h1>
+    <p>Final model performance, error analysis, and feature attribution.</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <section>
+    <h2>Final model</h2>
+    <p>
+      <strong>LightGBM</strong>, trained on the cleaned dataset with optional
+      lab features (lactate, creatinine) included, is the production model
+      served by the application.
+    </p>
+    <div class="stat-grid" style="margin-top:0;">
+      <div class="card"><h3 style="margin-top:0">0.786</h3><p style="margin:0">ROC-AUC</p></div>
+      <div class="card"><h3 style="margin-top:0">0.73</h3><p style="margin:0">Sensitivity</p></div>
+      <div class="card"><h3 style="margin-top:0">0.58</h3><p style="margin:0">Macro-F1</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Discrimination &amp; calibration</h2>
+    <div class="fig-grid">
+      <figure class="figure">
+        <img src="assets/img/fig_08_roc_pr_curves.png" alt="ROC and Precision-Recall curves">
+        <figcaption>Fig. 8 — ROC and Precision-Recall curves for the final model.</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_13_calibration.png" alt="Calibration curve">
+        <figcaption>Fig. 13 — Calibration: how closely predicted probabilities match observed outcome rates.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Error analysis</h2>
+    <div class="fig-grid">
+      <figure class="figure">
+        <img src="assets/img/fig_09_confusion_matrices.png" alt="Confusion matrices">
+        <figcaption>Fig. 9 — Confusion matrices at the selected decision threshold.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>What drives the model</h2>
+    <p>
+      Global feature importance shows which inputs matter most across the
+      whole cohort; SHAP values additionally show the <em>direction</em> of
+      each feature's effect. The same SHAP-style attribution is used
+      per-patient in the application's <a href="application.html">"Why This
+      Risk Score?"</a> panel.
+    </p>
+    <div class="fig-grid">
+      <figure class="figure">
+        <img src="assets/img/fig_10_feature_importance.png" alt="Feature importance">
+        <figcaption>Fig. 10 — Global feature importance (LightGBM gain).</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_11_shap_importance.png" alt="SHAP importance">
+        <figcaption>Fig. 11 — Mean absolute SHAP value per feature.</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="assets/img/fig_12_shap_summary.png" alt="SHAP summary plot">
+        <figcaption>Fig. 12 — SHAP summary: shock index, lactate, and creatinine are the strongest risk-raising signals.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Interpretation</h2>
+    <ul class="clean">
+      <li><strong>Shock index (HR / systolic BP)</strong> is consistently the top driver — a physiologically well-known deterioration signal.</li>
+      <li><strong>Lactate and creatinine</strong>, when available, are strong risk-raising features, consistent with their clinical role as sepsis/organ-failure markers.</li>
+      <li>The model trades some precision for higher sensitivity by design (threshold 0.44) — appropriate for a screening tool, where missing a deteriorating patient is costlier than a false alarm.</li>
+    </ul>
+    <p class="disclaimer">
+      ⚠️ These metrics describe model behavior on held-out historical data.
+      The system is a research prototype and is not validated for clinical
+      decision-making.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+<script src="assets/js/lightbox.js"></script>
+</body>
+</html>
