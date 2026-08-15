@@ -7,6 +7,12 @@ venv/
 env/
 icu_system.db
 
+# PyInstaller / build artifacts (distributed via GitHub Releases, not the repo)
+/build/
+/dist/
+/release/
+/ICU_Early_Warning_System_win64.zip
+
 # Jupyter
 .ipynb_checkpoints/
 

@@ -12,8 +12,16 @@ import datetime
 from pathlib import Path
 from PIL import Image
 
-APP_DIR = Path(__file__).resolve().parent
-DATABASE_PATH = APP_DIR / "icu_system.db"
+if getattr(sys, "frozen", False):
+    # Packaged with PyInstaller: read bundled resources from the temp extract
+    # dir, but keep the database next to the executable so it persists.
+    APP_DIR = Path(sys._MEIPASS)
+    DATA_DIR = Path(sys.executable).resolve().parent
+else:
+    APP_DIR = Path(__file__).resolve().parent
+    DATA_DIR = APP_DIR
+
+DATABASE_PATH = DATA_DIR / "icu_system.db"
 
 from backend.app import (
     compute_features,
