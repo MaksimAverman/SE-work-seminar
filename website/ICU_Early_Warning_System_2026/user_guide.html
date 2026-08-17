@@ -337,25 +337,10 @@
           </div>
           Click <strong>Login</strong>. The system verifies your role and takes you directly to the Dashboard.
         </div>
-        <div class="app-mock" style="min-height:200px">
-          <div class="m-overlay" style="flex:1">
-            <div class="m-dialog" style="max-width:300px">
-              <div style="text-align:center;margin-bottom:14px">
-                <div style="font-size:1.3rem;font-weight:800;color:#1a3557">🏥 ICU DSS</div>
-                <div style="font-size:.72rem;color:#566880;margin-top:2px">Decision Support System</div>
-              </div>
-              <div style="display:flex;gap:9px;justify-content:center;margin-bottom:13px;font-size:.7rem">
-                <div style="background:#eaf1fb;color:#1e5faa;padding:5px 12px;border-radius:20px;font-weight:700;border:2px solid #1e5faa">🩺 Doctor</div>
-                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">💉 Nurse</div>
-                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">⚙️ Admin</div>
-              </div>
-              <div class="m-field"><label>Username</label><input value="doctor1" readonly></div>
-              <div class="m-field"><label>Password</label><input type="password" value="pass" readonly></div>
-              <button class="m-save" style="width:100%;padding:7px;margin-top:5px;font-size:.8rem">Login →</button>
-            </div>
-          </div>
-        </div>
-        <p class="screen-cap">Login window — select Doctor and enter credentials</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_login.png" alt="ICU Decision Support System login window" class="zoomable">
+          <figcaption>Login window — enter credentials and click Login (Demo Quick Fill available for testing).</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -482,36 +467,10 @@
           </ul>
           <div class="lock-box">🔒 The Override button is restricted to doctors only.</div>
         </div>
-        <div class="app-mock" style="min-height:280px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>Dr. Sarah Cohen<br>(Doctor)</small></div>
-            <div class="m-section">Patient Clinical View</div>
-            <div class="m-item">📋 Patient Summary</div>
-            <div class="m-item">👤 Patient Details</div>
-            <div class="m-item active">⚕️ Recommended Actions</div>
-            <div class="m-item">❓ Risk Explanation</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Recommended Actions — Patient #2053</div>
-            <div class="rec-item h">
-              <div class="rec-head" style="color:#d97706">⚠️ HIGH RISK PROTOCOL</div>
-              <div class="rec-body">Obtain arterial blood gas immediately and commence continuous invasive BP monitoring.</div>
-              <div class="rec-btns">
-                <button class="rec-btn" style="background:#059669">✓ Done</button>
-                <button class="rec-btn" style="background:#7c3aed">Override + Note</button>
-              </div>
-            </div>
-            <div class="rec-item c">
-              <div class="rec-head" style="color:#b91c1c">🚨 CRITICAL — Elevated Creatinine</div>
-              <div class="rec-body">Urgent nephrology consult + repeat renal function in 4 hours.</div>
-              <div class="rec-btns">
-                <button class="rec-btn" style="background:#059669">✓ Done</button>
-                <button class="rec-btn" style="background:#7c3aed">Override + Note</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p class="screen-cap">Recommended Actions — mark done or log an override (doctor only)</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_rec_actions.png" alt="Recommended Actions & Protocol Checklist" class="zoomable">
+          <figcaption>Recommended Actions — clinical protocol checklist with Clinical Override and Acknowledge &amp; Save buttons.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -579,26 +538,10 @@
         <div class="step-desc">
           The <strong>Department KPI</strong> view shows a department-wide summary: patient counts by risk level, vital averages, and key metrics. Doctors can also export a full CSV of all patients with one click.
         </div>
-        <div class="app-mock" style="min-height:240px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>Dr. Sarah Cohen<br>(Doctor)</small></div>
-            <div class="m-section">Analytics &amp; Tools</div>
-            <div class="m-item active">📊 Department KPI</div>
-            <div class="m-item">🔧 What-if Analysis</div>
-            <div class="m-item">📈 Trend Monitoring</div>
-            <div class="m-item">⚠️ Missing Data</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Department KPI — ICU Overview</div>
-            <div class="kpi-row">
-              <div class="kpi-card"><div class="kpi-val" style="color:#b91c1c">48</div><div class="kpi-lbl">Critical</div><div class="kpi-bar"><div class="kpi-fill" style="width:48%;background:#b91c1c"></div></div></div>
-              <div class="kpi-card"><div class="kpi-val" style="color:#d97706">112</div><div class="kpi-lbl">High Risk</div><div class="kpi-bar"><div class="kpi-fill" style="width:70%;background:#d97706"></div></div></div>
-              <div class="kpi-card"><div class="kpi-val" style="color:#059669">240</div><div class="kpi-lbl">Low Risk</div><div class="kpi-bar"><div class="kpi-fill" style="width:60%;background:#059669"></div></div></div>
-            </div>
-            <a class="btn" href="#" onclick="return false" style="font-size:.75rem">⬇ Export Department CSV</a>
-          </div>
-        </div>
-        <p class="screen-cap">Department KPI — at-a-glance overview of the entire ICU</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_dept_kpi.png" alt="Department KPI overview" class="zoomable">
+          <figcaption>Department KPI — patient counts by risk level, averages, and stratification table for the full ICU.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -664,24 +607,10 @@
           </div>
           The Dashboard loads — visually identical to the Doctor view.
         </div>
-        <div class="app-mock" style="min-height:180px">
-          <div class="m-overlay" style="flex:1">
-            <div class="m-dialog" style="max-width:300px">
-              <div style="text-align:center;margin-bottom:14px">
-                <div style="font-size:1.3rem;font-weight:800;color:#1a3557">🏥 ICU DSS</div>
-              </div>
-              <div style="display:flex;gap:9px;justify-content:center;margin-bottom:13px;font-size:.7rem">
-                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">🩺 Doctor</div>
-                <div style="background:#e4f5ef;color:#1a7a50;padding:5px 12px;border-radius:20px;font-weight:700;border:2px solid #1a7a50">💉 Nurse</div>
-                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">⚙️ Admin</div>
-              </div>
-              <div class="m-field"><label>Username</label><input value="nurse1" readonly></div>
-              <div class="m-field"><label>Password</label><input type="password" value="pass" readonly></div>
-              <button class="m-save" style="width:100%;padding:7px;margin-top:5px;font-size:.8rem;background:#1a7a50">Login →</button>
-            </div>
-          </div>
-        </div>
-        <p class="screen-cap">Login as Nurse — select Nurse role</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_login.png" alt="ICU login window" class="zoomable">
+          <figcaption>Login window — use the Nurse quick-fill button or enter nurse1 / nurse123 manually.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -723,23 +652,10 @@
           Click <strong>Priority Queue</strong> in the sidebar. Patients are listed in descending urgency order — Critical first, then High, Moderate, Low. This is the primary triage tool for nurses on shift.
           <div class="note-box">💡 Use Priority Queue at the start of each shift to identify which patients need immediate attention.</div>
         </div>
-        <div class="app-mock" style="min-height:280px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
-            <div class="m-section">Overview &amp; Triage</div>
-            <div class="m-item">📊 Dashboard</div>
-            <div class="m-item active">🔺 Priority Queue</div>
-            <div class="m-item">🔔 Alerts Workflow</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Priority Queue — 400 patients</div>
-            <div class="pq-item c"><div class="pq-rank" style="background:#b91c1c">1</div><div class="pq-info"><div class="pq-id">Patient #2053 — ICU-101</div><div class="pq-meta">Age 85 · Score 76/100 · <span class="rpill r-critical">CRITICAL</span></div></div><button class="open-btn">Open</button></div>
-            <div class="pq-item c"><div class="pq-rank" style="background:#b91c1c">2</div><div class="pq-info"><div class="pq-id">Patient #0847 — ICU-108</div><div class="pq-meta">Age 79 · Score 72/100 · <span class="rpill r-critical">CRITICAL</span></div></div><button class="open-btn">Open</button></div>
-            <div class="pq-item h"><div class="pq-rank" style="background:#d97706">3</div><div class="pq-info"><div class="pq-id">Patient #0268 — ICU-101</div><div class="pq-meta">Age 66 · Score 55/100 · <span class="rpill r-high">HIGH</span></div></div><button class="open-btn">Open</button></div>
-            <div class="pq-item m"><div class="pq-rank" style="background:#ca8a04">4</div><div class="pq-info"><div class="pq-id">Patient #0631 — ICU-110</div><div class="pq-meta">Age 75 · Score 43/100 · <span class="rpill r-moderate">MODERATE</span></div></div><button class="open-btn">Open</button></div>
-          </div>
-        </div>
-        <p class="screen-cap">Priority Queue — critical patients surface at the top</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_prio_queue.png" alt="Clinical Priority Queue" class="zoomable">
+          <figcaption>Clinical Priority Queue — patients ranked by urgency, CRITICAL patients listed first.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -752,22 +668,10 @@
           The <strong>Alerts Workflow</strong> view lists all active clinical alerts ordered by severity. Each alert shows the patient, time, and current status. You can mark alerts as seen to manage the work queue.
           <div class="note-box">💡 Filter by NEW / IN PROGRESS / DONE to keep track of which alerts still need action.</div>
         </div>
-        <div class="app-mock" style="min-height:260px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
-            <div class="m-section">Overview &amp; Triage</div>
-            <div class="m-item">📊 Dashboard</div>
-            <div class="m-item">🔺 Priority Queue</div>
-            <div class="m-item active">🔔 Alerts Workflow</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Active Alerts</div>
-            <div class="al-item c"><span style="font-size:1rem;flex-shrink:0">🚨</span><div class="al-info"><div class="al-title">Critical creatinine — Patient #2053</div><div class="al-meta">ICU-101 · 14:22 · NEW</div></div><button class="open-btn" style="background:#059669;flex-shrink:0">Mark seen</button></div>
-            <div class="al-item c"><span style="font-size:1rem;flex-shrink:0">🚨</span><div class="al-info"><div class="al-title">Low blood pressure — Patient #0847</div><div class="al-meta">ICU-108 · 14:18 · NEW</div></div><button class="open-btn" style="background:#059669;flex-shrink:0">Mark seen</button></div>
-            <div class="al-item h"><span style="font-size:1rem;flex-shrink:0">⚠️</span><div class="al-info"><div class="al-title">Elevated heart rate — Patient #0191</div><div class="al-meta">ICU-107 · 14:05 · IN PROGRESS</div></div><button class="open-btn" style="flex-shrink:0">Open</button></div>
-          </div>
-        </div>
-        <p class="screen-cap">Alerts Workflow — manage and acknowledge active alerts</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_alerts.png" alt="Alerts Workflow" class="zoomable">
+          <figcaption>Alerts Workflow — active clinical alerts with status tracking and patient links.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -795,35 +699,10 @@
           <strong>Trend Monitoring</strong> shows time-series charts of vital signs over the last 72 hours. Useful for spotting gradual deterioration. The <strong>Add Clinical Flag</strong> button is blocked for nurses.
           <div class="lock-box">🔒 Adding a clinical flag to the trend chart requires doctor authorisation.</div>
         </div>
-        <div class="app-mock" style="min-height:240px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
-            <div class="m-section">Analytics &amp; Tools</div>
-            <div class="m-item">📊 Department KPI</div>
-            <div class="m-item">🔧 What-if Analysis</div>
-            <div class="m-item active">📈 Trend Monitoring</div>
-            <div class="m-item">⚠️ Missing Data</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Trends — Patient #2053</div>
-            <div class="spark-wrap">
-              <div class="spark-label">Systolic BP (72 h)</div>
-              <svg class="spark-svg" viewBox="0 0 300 48" preserveAspectRatio="none">
-                <polyline points="0,38 50,32 100,36 150,26 200,22 250,28 300,18" fill="none" stroke="#1f6fd1" stroke-width="2"/>
-                <circle cx="300" cy="18" r="3" fill="#1f6fd1"/>
-              </svg>
-            </div>
-            <div class="spark-wrap">
-              <div class="spark-label">Heart Rate (72 h)</div>
-              <svg class="spark-svg" viewBox="0 0 300 48" preserveAspectRatio="none">
-                <polyline points="0,26 60,30 120,22 180,36 240,28 300,38" fill="none" stroke="#d97706" stroke-width="2"/>
-                <circle cx="300" cy="38" r="3" fill="#d97706"/>
-              </svg>
-            </div>
-            <button class="btn" style="opacity:.4;cursor:not-allowed;font-size:.73rem;margin-top:8px">🚩 Add Clinical Flag (Doctor only)</button>
-          </div>
-        </div>
-        <p class="screen-cap">Trend Monitoring — charts available; flag feature is doctor-only</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_trend.png" alt="Trend Monitoring" class="zoomable">
+          <figcaption>Trend Monitoring — variability charts for HR and BP; the Flag Hemodynamic Instability button is doctor-only.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -836,19 +715,10 @@
           <strong>Missing Data</strong> shows which optional lab values are absent and how they were imputed for scoring. Nurses can see which tests are missing and flag them for the attending physician. The <strong>STAT Lab Order</strong> button is blocked.
           <div class="lock-box">🔒 Placing a STAT laboratory order requires doctor authorisation.</div>
         </div>
-        <div class="app-mock" style="min-height:200px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
-            <div class="m-section">Analytics &amp; Tools</div>
-            <div class="m-item active">⚠️ Missing Data</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Missing Data — Patient #2053</div>
-            <div class="miss-item"><div><div class="miss-name">Lactate — not recorded</div><div class="miss-status">⚠️ May affect risk score accuracy</div></div><button class="btn" style="opacity:.4;cursor:not-allowed;font-size:.68rem">STAT Order (Doctor)</button></div>
-            <div class="miss-item"><div><div class="miss-name">ABG — not recorded</div><div class="miss-status">⚠️ Critical value missing</div></div><button class="btn" style="opacity:.4;cursor:not-allowed;font-size:.68rem">STAT Order (Doctor)</button></div>
-          </div>
-        </div>
-        <p class="screen-cap">Missing Data — visible to nurses; STAT Order is doctor-only</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_missing.png" alt="Missing Data panel" class="zoomable">
+          <figcaption>Missing Data — shows which optional lab values were absent and how they were imputed for scoring.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -881,24 +751,10 @@
           </div>
           After login the standard Dashboard loads, with one additional option in the sidebar: <strong>⚙️ Admin Console</strong>.
         </div>
-        <div class="app-mock" style="min-height:180px">
-          <div class="m-overlay" style="flex:1">
-            <div class="m-dialog" style="max-width:300px">
-              <div style="text-align:center;margin-bottom:14px">
-                <div style="font-size:1.3rem;font-weight:800;color:#1a3557">🏥 ICU DSS</div>
-              </div>
-              <div style="display:flex;gap:9px;justify-content:center;margin-bottom:13px;font-size:.7rem">
-                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">🩺 Doctor</div>
-                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">💉 Nurse</div>
-                <div style="background:#f0eafc;color:#6c28d2;padding:5px 12px;border-radius:20px;font-weight:700;border:2px solid #6c28d2">⚙️ Admin</div>
-              </div>
-              <div class="m-field"><label>Username</label><input value="admin1" readonly></div>
-              <div class="m-field"><label>Password</label><input type="password" value="pass" readonly></div>
-              <button class="m-save" style="width:100%;padding:7px;margin-top:5px;font-size:.8rem;background:#6c28d2">Login →</button>
-            </div>
-          </div>
-        </div>
-        <p class="screen-cap">Login as Administrator — select Admin role</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_login.png" alt="ICU login window" class="zoomable">
+          <figcaption>Login window — use the Admin quick-fill button or enter admin1 / admin123 manually.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -910,28 +766,10 @@
         <div class="step-desc">
           After login the standard Dashboard is visible. In the left sidebar, scroll to the bottom section — an <strong>⚙️ Admin Console</strong> entry appears, exclusive to the Admin role. Click it to enter user management.
         </div>
-        <div class="app-mock" style="min-height:250px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>System Administrator<br>(Admin)</small></div>
-            <div class="m-section">Overview &amp; Triage</div>
-            <div class="m-item">📊 Dashboard</div>
-            <div class="m-item">🔺 Priority Queue</div>
-            <div class="m-item">🔔 Alerts Workflow</div>
-            <div class="m-section">Patient Management</div>
-            <div class="m-item">➕ Add Patient</div>
-            <div class="m-item">📁 Upload CSV</div>
-            <div class="m-section">Admin</div>
-            <div class="m-item active" style="background:rgba(139,92,246,.3);color:#ddd6fe">⚙️ Admin Console</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Dashboard — System Administrator</div>
-            <div style="background:#f0eafc;border-left:3px solid #6c28d2;border-radius:6px;padding:11px 14px;font-size:.78rem;color:#3b1d72">
-              <strong>Admin Console is available in the sidebar.</strong><br>
-              Click <em>Admin Console</em> at the bottom of the left navigation to manage users.
-            </div>
-          </div>
-        </div>
-        <p class="screen-cap">Sidebar with Admin Console entry — exclusive to Admin role</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_admin_dashboard.png" alt="Admin dashboard with Admin Console in sidebar" class="zoomable">
+          <figcaption>Admin dashboard — the sidebar shows the exclusive Admin Console entry under the ADMINISTRATION section.</figcaption>
+        </figure>
       </div>
     </div>
 
@@ -948,38 +786,10 @@
           </ul>
           <div class="note-box">💡 New users can log in immediately with the credentials entered here. There is no email verification step.</div>
         </div>
-        <div class="app-mock" style="min-height:340px">
-          <div class="m-sidebar">
-            <div class="m-logo">ICU DSS<small>System Administrator<br>(Admin)</small></div>
-            <div class="m-section">Admin</div>
-            <div class="m-item active" style="background:rgba(139,92,246,.3);color:#ddd6fe">⚙️ Admin Console</div>
-          </div>
-          <div class="m-content">
-            <div class="m-title">Admin Console — User Management</div>
-            <!-- Add form -->
-            <div style="background:#fff;border-radius:7px;padding:13px;margin-bottom:13px;border:1px solid var(--border);font-size:.73rem">
-              <div style="font-weight:700;margin-bottom:10px;color:#1c2530">➕ Add New User</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Username</div><input style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;background:#f8fafc;width:90px" value="doctor2" readonly></div>
-                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Password</div><input type="password" style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72px;background:#f8fafc;width:90px" value="pass" readonly></div>
-                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Full Name</div><input style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;background:#f8fafc;width:120px" value="Dr. Yael Ben-David" readonly></div>
-                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Role</div><select disabled style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;background:#f8fafc"><option>Doctor</option></select></div>
-                <button class="btn" style="font-size:.72rem;padding:5px 12px;margin-bottom:1px">Add User</button>
-              </div>
-            </div>
-            <!-- User table -->
-            <div style="font-weight:700;margin-bottom:7px;font-size:.8rem;color:#1c2530">Existing Users</div>
-            <table class="admin-table">
-              <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th>Action</th></tr></thead>
-              <tbody>
-                <tr><td>Dr. Sarah Cohen</td><td>doctor1</td><td><span class="rbadge rbadge-doctor">Doctor</span></td><td><button class="del-btn">Delete</button></td></tr>
-                <tr><td>Nurse Daniel Levi</td><td>nurse1</td><td><span class="rbadge rbadge-nurse">Nurse</span></td><td><button class="del-btn">Delete</button></td></tr>
-                <tr><td>System Administrator</td><td>admin1</td><td><span class="rbadge rbadge-admin">Admin</span></td><td><button class="del-btn">Delete</button></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <p class="screen-cap">Admin Console — add and remove user accounts</p>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/scr_admin_console.png" alt="Admin Console user management" class="zoomable">
+          <figcaption>Admin Console — Add New User form at top, System Users table with all accounts and Delete buttons below.</figcaption>
+        </figure>
       </div>
     </div>
 
