@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Guide — ICU Early Warning System</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+/* ── Role tabs ── */
+.role-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.role-tab {
+  padding: 11px 22px;
+  font-size: .92rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .15s;
+}
+.role-tab:hover { color: var(--ink); background: var(--blue-pale); }
+.role-tab.active-doctor { color: #1e5faa; border-bottom-color: #1e5faa; background: #eaf1fb; }
+.role-tab.active-nurse  { color: #1a7a50; border-bottom-color: #1a7a50; background: #e4f5ef; }
+.role-tab.active-admin  { color: #6c28d2; border-bottom-color: #6c28d2; background: #f0eafc; }
+.role-panel { display: none; }
+.role-panel.active { display: block; }
+
+/* ── Role badges ── */
+.rbadge {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  letter-spacing: .04em;
+  vertical-align: middle;
+}
+.rbadge-doctor { background: #eaf1fb; color: #1e5faa; }
+.rbadge-nurse  { background: #e4f5ef; color: #1a7a50; }
+.rbadge-admin  { background: #f0eafc; color: #6c28d2; }
+
+/* ── Diff table overrides ── */
+.diff-table th { background: var(--blue-pale); }
+.check { color: var(--green); font-size: 1rem; }
+.cross { color: var(--red);   font-size: 1rem; }
+
+/* ── Step layout ── */
+.steps { display: flex; flex-direction: column; gap: 0; }
+.step  { display: grid; grid-template-columns: 44px 1fr; gap: 0 24px; align-items: start; }
+.step-left { display: flex; flex-direction: column; align-items: center; }
+.step-num {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: .9rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; position: relative; z-index: 1;
+}
+.step-line { width: 2px; background: var(--border); flex: 1; min-height: 28px; }
+.step-body { padding: 4px 0 32px; }
+.step-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 8px; color: var(--ink); }
+.step-desc { font-size: .9rem; color: var(--ink-soft); line-height: 1.7; }
+.step-desc strong { color: var(--ink); }
+.step-desc ul { margin: 8px 0 8px; padding-left: 20px; }
+.step-desc li { margin-bottom: 4px; }
+.step:last-child .step-line { display: none; }
+
+/* ── Callout boxes ── */
+.note-box {
+  background: var(--blue-pale);
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  font-size: .87rem;
+  color: var(--ink);
+}
+.lock-box {
+  background: #fbe7e5;
+  border-left: 3px solid var(--red);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  font-size: .87rem;
+  color: #7a2218;
+}
+
+/* ── Credentials block ── */
+.cred-row {
+  display: inline-flex;
+  gap: 20px;
+  background: var(--blue-pale);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 10px 0 14px;
+  font-size: .88rem;
+  flex-wrap: wrap;
+}
+.cred-row span { color: var(--ink-soft); font-size: .78rem; display: block; }
+.cred-row code { font-family: Consolas, monospace; font-size: .9rem; font-weight: 700; color: var(--blue-dark); }
+
+/* ── App mockup ── */
+.app-mock {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  min-height: 300px;
+  background: #edf0f5;
+  font-size: .75rem;
+  margin-top: 14px;
+}
+.m-sidebar {
+  width: 188px;
+  background: #1a3557;
+  color: #fff;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.m-logo {
+  padding: 13px 15px 9px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  font-weight: 700;
+  font-size: .78rem;
+  line-height: 1.3;
+}
+.m-logo small { display: block; font-weight: 400; opacity: .6; font-size: .7rem; margin-top: 3px; }
+.m-section { padding: 9px 15px 3px; font-size: .62rem; opacity: .5; text-transform: uppercase; letter-spacing: .08em; }
+.m-item {
+  padding: 7px 15px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .73rem;
+  color: rgba(255,255,255,.88);
+  cursor: default;
+}
+.m-item.active { background: rgba(255,255,255,.18); font-weight: 700; }
+.m-content { flex: 1; padding: 18px; overflow-x: auto; }
+.m-title { font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 13px; color: #1c2530; }
+
+/* Mock table */
+.m-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 7px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.07); font-size: .72rem; }
+.m-table th { background: #dceaf8; color: #1a3557; padding: 6px 9px; font-weight: 700; border-bottom: 2px solid #ccd8e8; text-align: left; }
+.m-table td { padding: 6px 9px; border-bottom: 1px solid #edf0f5; color: #334155; }
+.m-table tr:last-child td { border-bottom: none; }
+.rpill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: .67rem; font-weight: 700; color: #fff; }
+.r-critical { background: #b91c1c; }
+.r-high { background: #d97706; }
+.r-moderate { background: #ca8a04; }
+.r-low { background: #059669; }
+.open-btn { background: #3b82f6; color: #fff; border: none; padding: 3px 9px; border-radius: 4px; font-size: .65rem; cursor: default; }
+
+/* Alert bar */
+.m-alert-bar {
+  background: #b91c1c; color: #fff;
+  padding: 7px 12px;
+  border-radius: 6px;
+  margin-bottom: 11px;
+  font-size: .71rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.m-alert-bar button { background: rgba(255,255,255,.2); border: none; color: #fff; padding: 2px 9px; border-radius: 4px; font-size: .67rem; cursor: default; }
+
+/* Mock dialog overlay */
+.m-overlay {
+  background: rgba(0,0,0,.38);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; flex: 1; min-height: 220px;
+}
+.m-dialog {
+  background: #fff; border-radius: 9px; padding: 18px 20px;
+  max-width: 380px; width: 100%;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
+  border: 1px solid var(--border);
+}
+.m-dialog h4 { font-size: .88rem; font-weight: 700; margin: 0 0 12px; color: #1c2530; }
+.m-field { margin-bottom: 9px; }
+.m-field label { display: block; font-size: .7rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 2px; }
+.m-field input, .m-field select, .m-field textarea {
+  width: 100%; padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: 5px;
+  font-size: .73rem; background: #f8fafc; color: #1c2530;
+}
+.m-field textarea { height: 64px; resize: none; }
+.m-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.m-cancel { background: #f1f5f9; border: 1px solid var(--border); color: var(--ink-soft); padding: 5px 13px; border-radius: 5px; font-size: .73rem; cursor: default; }
+.m-save { background: var(--blue); color: #fff; border: none; padding: 5px 13px; border-radius: 5px; font-size: .73rem; font-weight: 600; cursor: default; }
+.m-save.green { background: #059669; }
+
+/* KPI cards */
+.kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.kpi-card { background: #fff; border-radius: 7px; padding: 11px 13px; text-align: center; border: 1px solid var(--border); }
+.kpi-val { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.kpi-lbl { font-size: .67rem; color: var(--ink-soft); margin-top: 3px; }
+.kpi-bar { background: #edf0f5; border-radius: 4px; height: 5px; margin-top: 5px; overflow: hidden; }
+.kpi-fill { height: 100%; border-radius: 4px; }
+
+/* PQ items */
+.pq-item {
+  background: #fff; border-radius: 6px; padding: 9px 12px;
+  margin-bottom: 7px; display: flex; align-items: center; gap: 9px;
+  border-left: 3px solid transparent; font-size: .73rem;
+}
+.pq-item.c { border-left-color: #b91c1c; }
+.pq-item.h { border-left-color: #d97706; }
+.pq-item.m { border-left-color: #ca8a04; }
+.pq-rank { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: .67rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pq-info { flex: 1; }
+.pq-id { font-weight: 700; color: #1c2530; }
+.pq-meta { color: var(--ink-soft); font-size: .67rem; }
+
+/* Alert items */
+.al-item {
+  background: #fff; border-radius: 6px; padding: 9px 12px;
+  margin-bottom: 7px; display: flex; align-items: flex-start; gap: 9px;
+  border-left: 3px solid transparent; font-size: .73rem;
+}
+.al-item.c { border-left-color: #b91c1c; background: #fffafa; }
+.al-item.h { border-left-color: #d97706; background: #fffcf7; }
+.al-title { font-weight: 700; color: #1c2530; margin-bottom: 2px; }
+.al-meta  { color: var(--ink-soft); font-size: .67rem; }
+
+/* Missing data items */
+.miss-item {
+  background: #fff; border: 1px solid #fecaca;
+  border-radius: 6px; padding: 9px 12px; margin-bottom: 7px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: .73rem;
+}
+.miss-name { font-weight: 600; color: #1c2530; }
+.miss-status { color: var(--red); font-size: .68rem; }
+
+/* Sparklines */
+.spark-wrap { background: #fff; border-radius: 7px; padding: 12px; margin-bottom: 8px; }
+.spark-label { font-size: .72rem; font-weight: 700; color: #1c2530; margin-bottom: 6px; }
+.spark-svg { width: 100%; height: 48px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
+
+/* Recommended actions */
+.rec-item {
+  border-radius: 6px; padding: 10px 13px; margin-bottom: 9px;
+}
+.rec-item.c { background: #fbe7e5; border-left: 3px solid #b91c1c; }
+.rec-item.h { background: #fef2e7; border-left: 3px solid #d97706; }
+.rec-head { font-weight: 700; margin-bottom: 3px; font-size: .75rem; }
+.rec-body { font-size: .72rem; color: var(--ink-soft); margin-bottom: 8px; }
+.rec-btns { display: flex; gap: 7px; }
+.rec-btn { border: none; padding: 3px 9px; border-radius: 4px; font-size: .67rem; cursor: default; font-weight: 600; color: #fff; }
+
+/* Admin table */
+.admin-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); font-size: .72rem; }
+.admin-table th { background: #dceaf8; color: #1a3557; padding: 6px 11px; font-weight: 700; border-bottom: 1px solid var(--border); text-align: left; }
+.admin-table td { padding: 6px 11px; border-bottom: 1px solid #edf0f5; color: #334155; }
+.admin-table tr:last-child td { border-bottom: none; }
+.del-btn { background: #fee2e2; color: #b91c1c; border: none; padding: 2px 8px; border-radius: 4px; font-size: .65rem; cursor: default; font-weight: 600; }
+
+/* Screen captions */
+.screen-cap { font-size: .82rem; color: var(--ink-soft); text-align: center; margin-top: 6px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> ICU Early Warning System</div>
+    <nav class="mainnav">
+      <a href="index.htm">Home</a>
+      <a href="overview.html">Overview</a>
+      <a href="data.html">Data &amp; EDA</a>
+      <a href="methodology.html">Methodology</a>
+      <a href="results.html">Results</a>
+      <a href="application.html">Application</a>
+      <a href="user_guide.html" class="active">User Guide</a>
+      <a href="downloads.html">Downloads</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+</header>
+
+<div class="pageheader">
+  <div class="container">
+    <h1>User Guide</h1>
+    <p>Step-by-step instructions for each role: Doctor, Nurse, and Administrator — with screenshots for every screen.</p>
+  </div>
+</div>
+
+<main class="container">
+
+<!-- Role tabs -->
+<div class="role-tabs" id="tabs">
+  <button class="role-tab active-doctor" onclick="switchTab('doctor')" id="tab-doctor">
+    🩺 <span class="rbadge rbadge-doctor">Doctor</span>
+  </button>
+  <button class="role-tab" onclick="switchTab('nurse')" id="tab-nurse">
+    💉 <span class="rbadge rbadge-nurse">Nurse</span>
+  </button>
+  <button class="role-tab" onclick="switchTab('admin')" id="tab-admin">
+    ⚙️ <span class="rbadge rbadge-admin">Administrator</span>
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     DOCTOR PANEL
+════════════════════════════════════════════ -->
+<div class="role-panel active" id="panel-doctor">
+
+  <div class="card" style="margin-bottom:28px;border-left:4px solid #1e5faa">
+    <h3 style="margin-top:0">🩺 Doctor — Full Clinical Access</h3>
+    <p>Doctors have unrestricted access to all clinical operations: editing patient vitals and labs, adding physician notes, updating room assignments, ordering STAT labs, and logging protocol overrides. All of these actions are <strong>unavailable to nurses</strong> and are role-protected.</p>
+  </div>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Log in</div>
+        <div class="step-desc">
+          Open the application. In the login window, select <strong>Doctor</strong> and enter your credentials:
+          <div class="cred-row">
+            <div><span>Username</span><code>doctor1</code></div>
+            <div><span>Password</span><code>doctor123</code></div>
+          </div>
+          Click <strong>Login</strong>. The system verifies your role and takes you directly to the Dashboard.
+        </div>
+        <div class="app-mock" style="min-height:200px">
+          <div class="m-overlay" style="flex:1">
+            <div class="m-dialog" style="max-width:300px">
+              <div style="text-align:center;margin-bottom:14px">
+                <div style="font-size:1.3rem;font-weight:800;color:#1a3557">🏥 ICU DSS</div>
+                <div style="font-size:.72rem;color:#566880;margin-top:2px">Decision Support System</div>
+              </div>
+              <div style="display:flex;gap:9px;justify-content:center;margin-bottom:13px;font-size:.7rem">
+                <div style="background:#eaf1fb;color:#1e5faa;padding:5px 12px;border-radius:20px;font-weight:700;border:2px solid #1e5faa">🩺 Doctor</div>
+                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">💉 Nurse</div>
+                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">⚙️ Admin</div>
+              </div>
+              <div class="m-field"><label>Username</label><input value="doctor1" readonly></div>
+              <div class="m-field"><label>Password</label><input type="password" value="pass" readonly></div>
+              <button class="m-save" style="width:100%;padding:7px;margin-top:5px;font-size:.8rem">Login →</button>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Login window — select Doctor and enter credentials</p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Dashboard</div>
+        <div class="step-desc">
+          After login the main dashboard opens. You will see:
+          <ul>
+            <li><strong>Red urgent banner</strong> at the top — alerts about critical patients needing immediate re-assessment</li>
+            <li><strong>Patient table</strong> with columns: Patient ID, Room, Age, Gender, ICU Hours, Risk Score, Risk Level</li>
+            <li><strong>Open button</strong> for each patient — click to open the patient card</li>
+            <li><strong>Search bar</strong> to filter by Patient ID, room number, diagnosis, and more</li>
+          </ul>
+          <div class="note-box">💡 Risk level colours: <strong style="color:#b91c1c">CRITICAL</strong> · <strong style="color:#d97706">HIGH</strong> · <strong style="color:#ca8a04">MODERATE</strong> · <strong style="color:#059669">LOW</strong></div>
+        </div>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/gui_dashboard_screenshot.png" alt="ICU Dashboard showing patient risk list" class="zoomable">
+          <figcaption>Main Dashboard — 400 patients, 50 per page, with live-computed risk scores and colour-coded risk levels.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Patient Summary Card</div>
+        <div class="step-desc">
+          Click <strong>Open</strong> on any patient. The summary card shows:
+          <ul>
+            <li>Room assignment, risk level, risk score, prediction, admission type, diagnosis, alert status</li>
+            <li>Physician Note — blank until manually entered</li>
+            <li><strong>Suggested next steps</strong> — generated by clinical alert rules</li>
+            <li>Action buttons: <strong>Edit Room</strong>, <strong>Edit Physician Note</strong>, <strong>Quick Edit Vitals &amp; Labs</strong>, <strong>Export Medical Report</strong></li>
+          </ul>
+        </div>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/gui_patient_summary.png" alt="Patient Summary Card" class="zoomable">
+          <figcaption>Patient Summary Card for patient 2053 — CRITICAL risk (76/100), with edit and export actions.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Edit Room Assignment <span class="rbadge rbadge-doctor" style="font-size:.7rem">Doctor only</span></div>
+        <div class="step-desc">
+          Click <strong>Edit Room</strong> in the patient card. A dialog opens with a field for the room number (e.g. ICU-101). Enter the new room and click <strong>Save</strong>.
+          <div class="lock-box">🔒 Room assignment is restricted to doctors. Nurses see this button greyed out and receive a "Permission Denied" message if they attempt it.</div>
+        </div>
+        <div class="app-mock" style="min-height:180px">
+          <div class="m-overlay" style="flex:1">
+            <div class="m-dialog" style="max-width:300px">
+              <h4>✏️ Edit Room Assignment</h4>
+              <p style="font-size:.72rem;color:#566880;margin-bottom:10px">Patient #2053</p>
+              <div class="m-field"><label>Room Number</label><input value="ICU-101" readonly></div>
+              <div class="m-actions"><button class="m-cancel">Cancel</button><button class="m-save">Save Changes</button></div>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Edit Room dialog — doctors only</p>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Add Physician Note <span class="rbadge rbadge-doctor" style="font-size:.7rem">Doctor only</span></div>
+        <div class="step-desc">
+          Click <strong>Edit Physician Note</strong> in the patient card. Add a clinical note — findings, treatment decisions, protocol overrides. This note is included in the exported medical report.
+          <div class="lock-box">🔒 Nurses cannot add or edit physician notes. The button is visible but protected.</div>
+        </div>
+        <div class="app-mock" style="min-height:210px">
+          <div class="m-overlay" style="flex:1">
+            <div class="m-dialog" style="max-width:370px">
+              <h4>📝 Physician Note — Patient #2053</h4>
+              <div class="m-field">
+                <label>Clinical Note</label>
+                <textarea readonly>Creatinine significantly elevated — continue renal monitoring. STAT labs ordered. Patient receiving nutritional support per protocol.</textarea>
+              </div>
+              <div class="m-actions"><button class="m-cancel">Cancel</button><button class="m-save green">Save Note</button></div>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Physician Note dialog — saved and included in the exported report</p>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">6</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Risk Explanation</div>
+        <div class="step-desc">
+          Click <strong>Risk Explanation</strong> in the left sidebar. This panel shows the physiological factors driving the risk score for this specific patient, ranked by impact magnitude. <strong style="color:#b91c1c">Red</strong> factors raise risk; <strong style="color:#059669">green</strong> factors are protective.
+          <ul>
+            <li><strong>Insert Top Drivers into Physician Note</strong> — automatically prepends the top risk factors to the note</li>
+            <li><strong>View Recommended Actions for Drivers</strong> — navigates to the actions panel</li>
+          </ul>
+        </div>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/gui_risk_explanation.png" alt="Risk explanation panel" class="zoomable">
+          <figcaption>Per-patient SHAP-based risk drivers for patient 2053 — creatinine, age, and admission hour are the dominant factors.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">7</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Recommended Actions</div>
+        <div class="step-desc">
+          The <strong>Recommended Actions</strong> view lists clinical next steps generated from the alert rules for this patient's risk level. As a doctor you can:
+          <ul>
+            <li>Mark an action as <strong>Done</strong></li>
+            <li>Log a <strong>Protocol Override</strong> — record a clinical justification note when deviating from the recommended protocol</li>
+          </ul>
+          <div class="lock-box">🔒 The Override button is restricted to doctors only.</div>
+        </div>
+        <div class="app-mock" style="min-height:280px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>Dr. Sarah Cohen<br>(Doctor)</small></div>
+            <div class="m-section">Patient Clinical View</div>
+            <div class="m-item">📋 Patient Summary</div>
+            <div class="m-item">👤 Patient Details</div>
+            <div class="m-item active">⚕️ Recommended Actions</div>
+            <div class="m-item">❓ Risk Explanation</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Recommended Actions — Patient #2053</div>
+            <div class="rec-item h">
+              <div class="rec-head" style="color:#d97706">⚠️ HIGH RISK PROTOCOL</div>
+              <div class="rec-body">Obtain arterial blood gas immediately and commence continuous invasive BP monitoring.</div>
+              <div class="rec-btns">
+                <button class="rec-btn" style="background:#059669">✓ Done</button>
+                <button class="rec-btn" style="background:#7c3aed">Override + Note</button>
+              </div>
+            </div>
+            <div class="rec-item c">
+              <div class="rec-head" style="color:#b91c1c">🚨 CRITICAL — Elevated Creatinine</div>
+              <div class="rec-body">Urgent nephrology consult + repeat renal function in 4 hours.</div>
+              <div class="rec-btns">
+                <button class="rec-btn" style="background:#059669">✓ Done</button>
+                <button class="rec-btn" style="background:#7c3aed">Override + Note</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Recommended Actions — mark done or log an override (doctor only)</p>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">8</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Edit Vitals &amp; Labs <span class="rbadge rbadge-doctor" style="font-size:.7rem">Doctor only</span></div>
+        <div class="step-desc">
+          Click <strong>Quick Edit Patient Vitals &amp; Labs</strong> in the summary card, or <strong>Edit Vitals</strong> from the Patient Details view. A scrollable dialog opens with fields for all physiological parameters — blood pressure, heart rate, creatinine, lactate, etc. After saving, the risk score is recomputed automatically.
+          <div class="lock-box">🔒 Editing clinical measurements is restricted to doctors. Nurses receive "Permission Denied" when they attempt it.</div>
+        </div>
+        <div class="app-mock" style="min-height:260px">
+          <div class="m-overlay" style="flex:1">
+            <div class="m-dialog" style="max-width:400px">
+              <h4>📊 Edit Vitals &amp; Labs — Patient #2053</h4>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="m-field"><label>Heart Rate Mean</label><input type="number" value="88" readonly></div>
+                <div class="m-field"><label>Heart Rate Min</label><input type="number" value="72" readonly></div>
+                <div class="m-field"><label>Systolic BP Mean</label><input type="number" value="125" readonly></div>
+                <div class="m-field"><label>Systolic BP Max</label><input type="number" value="148" readonly></div>
+                <div class="m-field"><label>Creatinine Max</label><input type="number" value="2.8" readonly></div>
+                <div class="m-field"><label>Lactate Max</label><input type="number" value="1.2" readonly></div>
+              </div>
+              <div class="m-actions"><button class="m-cancel">Cancel</button><button class="m-save">Save &amp; Recompute Score</button></div>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Edit Vitals dialog — risk score recomputes automatically after saving</p>
+      </div>
+    </div>
+
+    <!-- Step 9 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">9</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Export Medical Report</div>
+        <div class="step-desc">
+          Click <strong>Export Medical Report (.txt)</strong> in the patient summary card. A save-file dialog opens. The report includes: patient details, risk score, all vitals, physician note, suggested next steps, and the name of the staff member who generated it along with a timestamp.
+          <div class="note-box">📄 The report is exported as a plain <code>.txt</code> file and contains the most current clinical data at the time of export.</div>
+        </div>
+        <div class="app-mock" style="min-height:160px">
+          <div class="m-content" style="font-family:Consolas,monospace;font-size:.7rem;color:#1c2530;line-height:1.65;padding:16px">
+            <div style="color:#566880;margin-bottom:7px">── MEDICAL REPORT — ICU Decision Support System ──</div>
+            <div>Patient ID: 2053 | Room: ICU-101</div>
+            <div>Risk Level: CRITICAL | Risk Score: 76/100</div>
+            <div>Age: 85 | Gender: F | ICU Hours: 48</div>
+            <div>Diagnosis: Not provided</div>
+            <div>─────────────────────────────────</div>
+            <div>Physician Note: Creatinine significantly elevated...</div>
+            <div>─────────────────────────────────</div>
+            <div style="color:#566880">Generated By: Dr. Sarah Cohen (Doctor)</div>
+            <div style="color:#566880">Date: 2026-08-17 14:32:05</div>
+          </div>
+        </div>
+        <p class="screen-cap">Exported report — includes all clinical data and physician note</p>
+      </div>
+    </div>
+
+    <!-- Step 10 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">10</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Department KPI &amp; CSV Export</div>
+        <div class="step-desc">
+          The <strong>Department KPI</strong> view shows a department-wide summary: patient counts by risk level, vital averages, and key metrics. Doctors can also export a full CSV of all patients with one click.
+        </div>
+        <div class="app-mock" style="min-height:240px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>Dr. Sarah Cohen<br>(Doctor)</small></div>
+            <div class="m-section">Analytics &amp; Tools</div>
+            <div class="m-item active">📊 Department KPI</div>
+            <div class="m-item">🔧 What-if Analysis</div>
+            <div class="m-item">📈 Trend Monitoring</div>
+            <div class="m-item">⚠️ Missing Data</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Department KPI — ICU Overview</div>
+            <div class="kpi-row">
+              <div class="kpi-card"><div class="kpi-val" style="color:#b91c1c">48</div><div class="kpi-lbl">Critical</div><div class="kpi-bar"><div class="kpi-fill" style="width:48%;background:#b91c1c"></div></div></div>
+              <div class="kpi-card"><div class="kpi-val" style="color:#d97706">112</div><div class="kpi-lbl">High Risk</div><div class="kpi-bar"><div class="kpi-fill" style="width:70%;background:#d97706"></div></div></div>
+              <div class="kpi-card"><div class="kpi-val" style="color:#059669">240</div><div class="kpi-lbl">Low Risk</div><div class="kpi-bar"><div class="kpi-fill" style="width:60%;background:#059669"></div></div></div>
+            </div>
+            <a class="btn" href="#" onclick="return false" style="font-size:.75rem">⬇ Export Department CSV</a>
+          </div>
+        </div>
+        <p class="screen-cap">Department KPI — at-a-glance overview of the entire ICU</p>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+</div><!-- /doctor panel -->
+
+
+<!-- ════════════════════════════════════════════
+     NURSE PANEL
+════════════════════════════════════════════ -->
+<div class="role-panel" id="panel-nurse">
+
+  <div class="card" style="margin-bottom:20px;border-left:4px solid #1a7a50">
+    <h3 style="margin-top:0">💉 Nurse — Monitoring &amp; Read Access</h3>
+    <p>Nurses can view all clinical data and perform continuous monitoring, but cannot make clinical changes. Actions that require physician authorisation are protected and display a "Permission Denied" message if attempted.</p>
+  </div>
+
+  <!-- Doctor vs Nurse differences -->
+  <section>
+    <h2>Doctor vs. Nurse — permission differences</h2>
+    <p>Both roles see <strong>exactly the same data</strong> — the same Dashboard, the same patient cards, the same risk scores and reports. The difference is <em>write access</em>: only a doctor can introduce clinical changes or document treatment decisions. This ensures that every change to a patient's clinical record passes through a responsible physician.</p>
+    <div class="table-wrap" style="margin-top:16px">
+      <table class="diff-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Doctor 🩺</th>
+            <th>Nurse 💉</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>View Dashboard &amp; patient table</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Open Patient Summary Card</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>View risk score &amp; Risk Explanation</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>View Recommended Actions</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Export Medical Report (.txt)</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Priority Queue &amp; Alerts Workflow</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>What-if Analysis &amp; Trend Monitoring</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td>Department KPI</td><td class="check">✓</td><td class="check">✓</td></tr>
+          <tr><td><strong>Edit Vitals &amp; Labs</strong></td><td class="check">✓</td><td class="cross">✗ blocked</td></tr>
+          <tr><td><strong>Add / edit Physician Note</strong></td><td class="check">✓</td><td class="cross">✗ blocked</td></tr>
+          <tr><td><strong>Edit room assignment</strong></td><td class="check">✓</td><td class="cross">✗ blocked</td></tr>
+          <tr><td><strong>Log Protocol Override</strong></td><td class="check">✓</td><td class="cross">✗ blocked</td></tr>
+          <tr><td><strong>Place STAT lab order</strong></td><td class="check">✓</td><td class="cross">✗ blocked</td></tr>
+          <tr><td><strong>Add Clinical Flag in Trend view</strong></td><td class="check">✓</td><td class="cross">✗ blocked</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Log in</div>
+        <div class="step-desc">
+          Open the application, select <strong>Nurse</strong>, and enter:
+          <div class="cred-row">
+            <div><span>Username</span><code>nurse1</code></div>
+            <div><span>Password</span><code>nurse123</code></div>
+          </div>
+          The Dashboard loads — visually identical to the Doctor view.
+        </div>
+        <div class="app-mock" style="min-height:180px">
+          <div class="m-overlay" style="flex:1">
+            <div class="m-dialog" style="max-width:300px">
+              <div style="text-align:center;margin-bottom:14px">
+                <div style="font-size:1.3rem;font-weight:800;color:#1a3557">🏥 ICU DSS</div>
+              </div>
+              <div style="display:flex;gap:9px;justify-content:center;margin-bottom:13px;font-size:.7rem">
+                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">🩺 Doctor</div>
+                <div style="background:#e4f5ef;color:#1a7a50;padding:5px 12px;border-radius:20px;font-weight:700;border:2px solid #1a7a50">💉 Nurse</div>
+                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">⚙️ Admin</div>
+              </div>
+              <div class="m-field"><label>Username</label><input value="nurse1" readonly></div>
+              <div class="m-field"><label>Password</label><input type="password" value="pass" readonly></div>
+              <button class="m-save" style="width:100%;padding:7px;margin-top:5px;font-size:.8rem;background:#1a7a50">Login →</button>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Login as Nurse — select Nurse role</p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Dashboard</div>
+        <div class="step-desc">The Dashboard is the same as for doctors — same patients, same scores, same colour coding. You can search, filter, and open any patient card.</div>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/gui_dashboard_screenshot.png" alt="Dashboard" class="zoomable">
+          <figcaption>Dashboard — identical view for both doctors and nurses.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Patient Summary Card — read-only mode</div>
+        <div class="step-desc">
+          Click <strong>Open</strong> on any patient. The card shows all clinical details — risk level, score, physician note, suggested next steps. Note:
+          <div class="lock-box">🔒 <strong>Edit Room</strong>, <strong>Edit Physician Note</strong>, and <strong>Quick Edit Vitals</strong> buttons are visible but protected. Clicking them displays a "Permission Denied" warning.</div>
+        </div>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/gui_patient_summary.png" alt="Patient Summary Card" class="zoomable">
+          <figcaption>Patient Summary — edit buttons are visible but blocked for nurses.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Priority Queue</div>
+        <div class="step-desc">
+          Click <strong>Priority Queue</strong> in the sidebar. Patients are listed in descending urgency order — Critical first, then High, Moderate, Low. This is the primary triage tool for nurses on shift.
+          <div class="note-box">💡 Use Priority Queue at the start of each shift to identify which patients need immediate attention.</div>
+        </div>
+        <div class="app-mock" style="min-height:280px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
+            <div class="m-section">Overview &amp; Triage</div>
+            <div class="m-item">📊 Dashboard</div>
+            <div class="m-item active">🔺 Priority Queue</div>
+            <div class="m-item">🔔 Alerts Workflow</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Priority Queue — 400 patients</div>
+            <div class="pq-item c"><div class="pq-rank" style="background:#b91c1c">1</div><div class="pq-info"><div class="pq-id">Patient #2053 — ICU-101</div><div class="pq-meta">Age 85 · Score 76/100 · <span class="rpill r-critical">CRITICAL</span></div></div><button class="open-btn">Open</button></div>
+            <div class="pq-item c"><div class="pq-rank" style="background:#b91c1c">2</div><div class="pq-info"><div class="pq-id">Patient #0847 — ICU-108</div><div class="pq-meta">Age 79 · Score 72/100 · <span class="rpill r-critical">CRITICAL</span></div></div><button class="open-btn">Open</button></div>
+            <div class="pq-item h"><div class="pq-rank" style="background:#d97706">3</div><div class="pq-info"><div class="pq-id">Patient #0268 — ICU-101</div><div class="pq-meta">Age 66 · Score 55/100 · <span class="rpill r-high">HIGH</span></div></div><button class="open-btn">Open</button></div>
+            <div class="pq-item m"><div class="pq-rank" style="background:#ca8a04">4</div><div class="pq-info"><div class="pq-id">Patient #0631 — ICU-110</div><div class="pq-meta">Age 75 · Score 43/100 · <span class="rpill r-moderate">MODERATE</span></div></div><button class="open-btn">Open</button></div>
+          </div>
+        </div>
+        <p class="screen-cap">Priority Queue — critical patients surface at the top</p>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Alerts Workflow</div>
+        <div class="step-desc">
+          The <strong>Alerts Workflow</strong> view lists all active clinical alerts ordered by severity. Each alert shows the patient, time, and current status. You can mark alerts as seen to manage the work queue.
+          <div class="note-box">💡 Filter by NEW / IN PROGRESS / DONE to keep track of which alerts still need action.</div>
+        </div>
+        <div class="app-mock" style="min-height:260px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
+            <div class="m-section">Overview &amp; Triage</div>
+            <div class="m-item">📊 Dashboard</div>
+            <div class="m-item">🔺 Priority Queue</div>
+            <div class="m-item active">🔔 Alerts Workflow</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Active Alerts</div>
+            <div class="al-item c"><span style="font-size:1rem;flex-shrink:0">🚨</span><div class="al-info"><div class="al-title">Critical creatinine — Patient #2053</div><div class="al-meta">ICU-101 · 14:22 · NEW</div></div><button class="open-btn" style="background:#059669;flex-shrink:0">Mark seen</button></div>
+            <div class="al-item c"><span style="font-size:1rem;flex-shrink:0">🚨</span><div class="al-info"><div class="al-title">Low blood pressure — Patient #0847</div><div class="al-meta">ICU-108 · 14:18 · NEW</div></div><button class="open-btn" style="background:#059669;flex-shrink:0">Mark seen</button></div>
+            <div class="al-item h"><span style="font-size:1rem;flex-shrink:0">⚠️</span><div class="al-info"><div class="al-title">Elevated heart rate — Patient #0191</div><div class="al-meta">ICU-107 · 14:05 · IN PROGRESS</div></div><button class="open-btn" style="flex-shrink:0">Open</button></div>
+          </div>
+        </div>
+        <p class="screen-cap">Alerts Workflow — manage and acknowledge active alerts</p>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">6</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Risk Explanation (view only)</div>
+        <div class="step-desc">
+          Click <strong>Risk Explanation</strong> in the patient navigation. The same SHAP-based breakdown is shown — nurses have full read access. The <em>Insert into Physician Note</em> button is present but blocked.
+        </div>
+        <figure class="figure" style="margin-top:14px">
+          <img src="assets/img/gui_risk_explanation.png" alt="Risk explanation" class="zoomable">
+          <figcaption>Risk Explanation — fully visible to nurses; insert-to-note action is doctor-only.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">7</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Trend Monitoring (view only)</div>
+        <div class="step-desc">
+          <strong>Trend Monitoring</strong> shows time-series charts of vital signs over the last 72 hours. Useful for spotting gradual deterioration. The <strong>Add Clinical Flag</strong> button is blocked for nurses.
+          <div class="lock-box">🔒 Adding a clinical flag to the trend chart requires doctor authorisation.</div>
+        </div>
+        <div class="app-mock" style="min-height:240px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
+            <div class="m-section">Analytics &amp; Tools</div>
+            <div class="m-item">📊 Department KPI</div>
+            <div class="m-item">🔧 What-if Analysis</div>
+            <div class="m-item active">📈 Trend Monitoring</div>
+            <div class="m-item">⚠️ Missing Data</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Trends — Patient #2053</div>
+            <div class="spark-wrap">
+              <div class="spark-label">Systolic BP (72 h)</div>
+              <svg class="spark-svg" viewBox="0 0 300 48" preserveAspectRatio="none">
+                <polyline points="0,38 50,32 100,36 150,26 200,22 250,28 300,18" fill="none" stroke="#1f6fd1" stroke-width="2"/>
+                <circle cx="300" cy="18" r="3" fill="#1f6fd1"/>
+              </svg>
+            </div>
+            <div class="spark-wrap">
+              <div class="spark-label">Heart Rate (72 h)</div>
+              <svg class="spark-svg" viewBox="0 0 300 48" preserveAspectRatio="none">
+                <polyline points="0,26 60,30 120,22 180,36 240,28 300,38" fill="none" stroke="#d97706" stroke-width="2"/>
+                <circle cx="300" cy="38" r="3" fill="#d97706"/>
+              </svg>
+            </div>
+            <button class="btn" style="opacity:.4;cursor:not-allowed;font-size:.73rem;margin-top:8px">🚩 Add Clinical Flag (Doctor only)</button>
+          </div>
+        </div>
+        <p class="screen-cap">Trend Monitoring — charts available; flag feature is doctor-only</p>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">8</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Missing Data</div>
+        <div class="step-desc">
+          <strong>Missing Data</strong> shows which optional lab values are absent and how they were imputed for scoring. Nurses can see which tests are missing and flag them for the attending physician. The <strong>STAT Lab Order</strong> button is blocked.
+          <div class="lock-box">🔒 Placing a STAT laboratory order requires doctor authorisation.</div>
+        </div>
+        <div class="app-mock" style="min-height:200px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>Nurse Daniel Levi<br>(Nurse)</small></div>
+            <div class="m-section">Analytics &amp; Tools</div>
+            <div class="m-item active">⚠️ Missing Data</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Missing Data — Patient #2053</div>
+            <div class="miss-item"><div><div class="miss-name">Lactate — not recorded</div><div class="miss-status">⚠️ May affect risk score accuracy</div></div><button class="btn" style="opacity:.4;cursor:not-allowed;font-size:.68rem">STAT Order (Doctor)</button></div>
+            <div class="miss-item"><div><div class="miss-name">ABG — not recorded</div><div class="miss-status">⚠️ Critical value missing</div></div><button class="btn" style="opacity:.4;cursor:not-allowed;font-size:.68rem">STAT Order (Doctor)</button></div>
+          </div>
+        </div>
+        <p class="screen-cap">Missing Data — visible to nurses; STAT Order is doctor-only</p>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+</div><!-- /nurse panel -->
+
+
+<!-- ════════════════════════════════════════════
+     ADMIN PANEL
+════════════════════════════════════════════ -->
+<div class="role-panel" id="panel-admin">
+
+  <div class="card" style="margin-bottom:28px;border-left:4px solid #6c28d2">
+    <h3 style="margin-top:0">⚙️ Administrator — User Management</h3>
+    <p>The Administrator is responsible for managing user accounts — adding, and removing users. Administrators are not expected to perform clinical work; their role is access control and system security. The Admin Console is accessible only to the Admin role.</p>
+  </div>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Log in</div>
+        <div class="step-desc">
+          Open the application, select <strong>Admin</strong>, and enter:
+          <div class="cred-row">
+            <div><span>Username</span><code>admin1</code></div>
+            <div><span>Password</span><code>admin123</code></div>
+          </div>
+          After login the standard Dashboard loads, with one additional option in the sidebar: <strong>⚙️ Admin Console</strong>.
+        </div>
+        <div class="app-mock" style="min-height:180px">
+          <div class="m-overlay" style="flex:1">
+            <div class="m-dialog" style="max-width:300px">
+              <div style="text-align:center;margin-bottom:14px">
+                <div style="font-size:1.3rem;font-weight:800;color:#1a3557">🏥 ICU DSS</div>
+              </div>
+              <div style="display:flex;gap:9px;justify-content:center;margin-bottom:13px;font-size:.7rem">
+                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">🩺 Doctor</div>
+                <div style="background:none;color:#566880;padding:5px 12px;border-radius:20px;border:2px solid #ccd8e8">💉 Nurse</div>
+                <div style="background:#f0eafc;color:#6c28d2;padding:5px 12px;border-radius:20px;font-weight:700;border:2px solid #6c28d2">⚙️ Admin</div>
+              </div>
+              <div class="m-field"><label>Username</label><input value="admin1" readonly></div>
+              <div class="m-field"><label>Password</label><input type="password" value="pass" readonly></div>
+              <button class="m-save" style="width:100%;padding:7px;margin-top:5px;font-size:.8rem;background:#6c28d2">Login →</button>
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Login as Administrator — select Admin role</p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Access the Admin Console</div>
+        <div class="step-desc">
+          After login the standard Dashboard is visible. In the left sidebar, scroll to the bottom section — an <strong>⚙️ Admin Console</strong> entry appears, exclusive to the Admin role. Click it to enter user management.
+        </div>
+        <div class="app-mock" style="min-height:250px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>System Administrator<br>(Admin)</small></div>
+            <div class="m-section">Overview &amp; Triage</div>
+            <div class="m-item">📊 Dashboard</div>
+            <div class="m-item">🔺 Priority Queue</div>
+            <div class="m-item">🔔 Alerts Workflow</div>
+            <div class="m-section">Patient Management</div>
+            <div class="m-item">➕ Add Patient</div>
+            <div class="m-item">📁 Upload CSV</div>
+            <div class="m-section">Admin</div>
+            <div class="m-item active" style="background:rgba(139,92,246,.3);color:#ddd6fe">⚙️ Admin Console</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Dashboard — System Administrator</div>
+            <div style="background:#f0eafc;border-left:3px solid #6c28d2;border-radius:6px;padding:11px 14px;font-size:.78rem;color:#3b1d72">
+              <strong>Admin Console is available in the sidebar.</strong><br>
+              Click <em>Admin Console</em> at the bottom of the left navigation to manage users.
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Sidebar with Admin Console entry — exclusive to Admin role</p>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Admin Console — Manage Users</div>
+        <div class="step-desc">
+          The Admin Console contains two components:
+          <ul>
+            <li><strong>Add User form</strong> — username, password, full name, and role (Doctor / Nurse / Admin)</li>
+            <li><strong>User table</strong> — lists all existing users with name, role, and a Delete button</li>
+          </ul>
+          <div class="note-box">💡 New users can log in immediately with the credentials entered here. There is no email verification step.</div>
+        </div>
+        <div class="app-mock" style="min-height:340px">
+          <div class="m-sidebar">
+            <div class="m-logo">ICU DSS<small>System Administrator<br>(Admin)</small></div>
+            <div class="m-section">Admin</div>
+            <div class="m-item active" style="background:rgba(139,92,246,.3);color:#ddd6fe">⚙️ Admin Console</div>
+          </div>
+          <div class="m-content">
+            <div class="m-title">Admin Console — User Management</div>
+            <!-- Add form -->
+            <div style="background:#fff;border-radius:7px;padding:13px;margin-bottom:13px;border:1px solid var(--border);font-size:.73rem">
+              <div style="font-weight:700;margin-bottom:10px;color:#1c2530">➕ Add New User</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Username</div><input style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;background:#f8fafc;width:90px" value="doctor2" readonly></div>
+                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Password</div><input type="password" style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72px;background:#f8fafc;width:90px" value="pass" readonly></div>
+                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Full Name</div><input style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;background:#f8fafc;width:120px" value="Dr. Yael Ben-David" readonly></div>
+                <div><div style="font-size:.68rem;font-weight:600;color:#566880;margin-bottom:2px">Role</div><select disabled style="padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;background:#f8fafc"><option>Doctor</option></select></div>
+                <button class="btn" style="font-size:.72rem;padding:5px 12px;margin-bottom:1px">Add User</button>
+              </div>
+            </div>
+            <!-- User table -->
+            <div style="font-weight:700;margin-bottom:7px;font-size:.8rem;color:#1c2530">Existing Users</div>
+            <table class="admin-table">
+              <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td>Dr. Sarah Cohen</td><td>doctor1</td><td><span class="rbadge rbadge-doctor">Doctor</span></td><td><button class="del-btn">Delete</button></td></tr>
+                <tr><td>Nurse Daniel Levi</td><td>nurse1</td><td><span class="rbadge rbadge-nurse">Nurse</span></td><td><button class="del-btn">Delete</button></td></tr>
+                <tr><td>System Administrator</td><td>admin1</td><td><span class="rbadge rbadge-admin">Admin</span></td><td><button class="del-btn">Delete</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="screen-cap">Admin Console — add and remove user accounts</p>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Switch User &amp; Dark Mode</div>
+        <div class="step-desc">
+          At the bottom of the sidebar, two utility buttons are always available:
+          <ul>
+            <li><strong>Dark Mode</strong> — toggles the interface to a dark theme, useful in low-light environments</li>
+            <li><strong>Switch User</strong> — returns to the login window without closing the application, ideal for shift handovers</li>
+          </ul>
+        </div>
+        <div class="app-mock" style="min-height:140px">
+          <div class="m-sidebar" style="justify-content:flex-end;padding-bottom:8px">
+            <div class="m-item" style="background:#162b40">🌙 Dark Mode</div>
+            <div class="m-item" style="background:#162b40">🔄 Switch User</div>
+          </div>
+          <div class="m-content" style="display:flex;align-items:center;justify-content:center">
+            <div style="text-align:center;color:#566880;font-size:.82rem">
+              <div style="font-size:1.8rem;margin-bottom:6px">🔄</div>
+              Click <strong>Switch User</strong><br>to return to the login screen
+            </div>
+          </div>
+        </div>
+        <p class="screen-cap">Switch User and Dark Mode — at the bottom of the sidebar</p>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <section>
+    <p class="disclaimer">
+      ⚠️ Research / educational prototype. Not a certified medical device and not validated for real clinical decision-making.
+    </p>
+  </section>
+
+</div><!-- /admin panel -->
+
+</main>
+
+<footer>
+  <div class="container">
+    <span>ICU Early Warning System — course project, 2026.</span>
+    <span><a href="team.html">Team</a> · <a href="downloads.html">Downloads</a></span>
+  </div>
+</footer>
+
+<div class="lightbox-overlay" id="lightbox">
+  <span class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">&times;</span>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+function switchTab(role) {
+  ['doctor','nurse','admin'].forEach(function(r) {
+    document.getElementById('panel-'+r).classList.remove('active');
+    var t = document.getElementById('tab-'+r);
+    t.classList.remove('active-doctor','active-nurse','active-admin');
+  });
+  document.getElementById('panel-'+role).classList.add('active');
+  document.getElementById('tab-'+role).classList.add('active-'+role);
+  window.scrollTo({top: document.getElementById('tabs').offsetTop - 80, behavior: 'smooth'});
+}
+
+// Lightbox
+document.querySelectorAll('.zoomable').forEach(function(img) {
+  img.addEventListener('click', function() {
+    document.getElementById('lightbox-img').src = this.src;
+    document.getElementById('lightbox').classList.add('open');
+  });
+});
+document.getElementById('lightbox').addEventListener('click', function(e) {
+  if (e.target !== document.getElementById('lightbox-img')) {
+    this.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
