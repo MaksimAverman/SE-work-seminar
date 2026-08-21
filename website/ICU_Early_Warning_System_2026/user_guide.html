@@ -733,7 +733,8 @@
 
   <div class="card" style="margin-bottom:28px;border-left:4px solid #6c28d2">
     <h3 style="margin-top:0">⚙️ Administrator — User Management</h3>
-    <p>The Administrator is responsible for managing user accounts — adding, and removing users. Administrators are not expected to perform clinical work; their role is access control and system security. The Admin Console is accessible only to the Admin role.</p>
+    <p>The Administrator is responsible for managing user accounts — adding and removing users. Administrators can browse all clinical views (Dashboard, Priority Queue, Patient Summary, Alerts, etc.) in <strong>read-only mode</strong>, but <strong>cannot add new patient records</strong> to the system — patient data is loaded via CSV by clinical staff. The Admin role is strictly limited to access control and system security; the Admin Console is accessible only to the Admin role.</p>
+    <div class="lock-box" style="margin-top:10px">🔒 Admins cannot add or edit patient records. The "Add Patient" and "Upload Patients CSV" actions are not available in the Admin role.</div>
   </div>
 
   <div class="steps">
